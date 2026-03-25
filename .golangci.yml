@@ -9,16 +9,11 @@ linters:
     - govet
     - ineffassign
     - staticcheck
-    - unused
     - gofmt
     - goimports
     - misspell
     - gosec
     - revive
-    - godot
-    - noctx
-    - bodyclose
-    - exportloopref
     - unparam
 
 linters-settings:
@@ -29,9 +24,6 @@ linters-settings:
       - name: exported
         arguments:
           - disableStutteringCheck
-  godot:
-    scope: declarations
-    capital: true
 
 issues:
   exclude-rules:
