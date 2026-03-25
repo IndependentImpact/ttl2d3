@@ -72,15 +72,15 @@ Progress legend: ✅ Done · 🔄 In progress · ⬜ Not started
 
 ---
 
-## Phase 5 – JSON-LD Parser ⬜
+## Phase 5 – JSON-LD Parser ✅
 
 **Goal:** Parse `.jsonld` / `.json` files into the triple store.
 
-- [ ] 5.1 Add `github.com/piprate/json-gold` dependency
-- [ ] 5.2 Implement `internal/parser/jsonld.go`
-- [ ] 5.3 Add `testdata/example.jsonld`
-- [ ] 5.4 Write `internal/parser/jsonld_test.go`
-- [ ] 5.5 Run: lint + vet + build + test; commit
+- [x] 5.1 Add `github.com/piprate/json-gold` dependency
+- [x] 5.2 Implement `internal/parser/jsonld.go`
+- [x] 5.3 Add `testdata/example.jsonld`
+- [x] 5.4 Write `internal/parser/jsonld_test.go`
+- [x] 5.5 Run: lint + vet + build + test; commit
 
 ---
 

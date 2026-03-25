@@ -1,0 +1,31 @@
+{
+  "@context": {
+    "owl":  "http://www.w3.org/2002/07/owl#",
+    "rdf":  "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#"
+  },
+  "@graph": [
+    {
+      "@id":   "http://example.org/ontology",
+      "@type": "owl:Ontology",
+      "rdfs:label": { "@language": "en", "@value": "Example Ontology" }
+    },
+    {
+      "@id":   "http://example.org/ontology#Animal",
+      "@type": "owl:Class",
+      "rdfs:label": { "@language": "en", "@value": "Animal" }
+    },
+    {
+      "@id":   "http://example.org/ontology#Mammal",
+      "@type": "owl:Class",
+      "rdfs:label":    { "@language": "en", "@value": "Mammal" },
+      "rdfs:subClassOf": { "@id": "http://example.org/ontology#Animal" }
+    },
+    {
+      "@id":   "http://example.org/ontology#hasParent",
+      "@type": "owl:ObjectProperty",
+      "rdfs:domain": { "@id": "http://example.org/ontology#Animal" },
+      "rdfs:range":  { "@id": "http://example.org/ontology#Animal" }
+    }
+  ]
+}
