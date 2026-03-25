@@ -1,0 +1,604 @@
+package transform_test
+
+import (
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+	"testing"
+
+	"github.com/IndependentImpact/ttl2d3/internal/graph"
+	"github.com/IndependentImpact/ttl2d3/internal/parser"
+	"github.com/IndependentImpact/ttl2d3/internal/transform"
+)
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+// parseTurtle is a test helper that parses a Turtle string and fatals on error.
+func parseTurtle(t *testing.T, src, base string) *parser.Graph {
+	t.Helper()
+	g, err := parser.ParseTurtle(strings.NewReader(src), base)
+	if err != nil {
+		t.Fatalf("ParseTurtle: %v", err)
+	}
+	return g
+}
+
+// parseTurtleFile is a test helper that reads a Turtle file from testdata and
+// parses it.
+func parseTurtleFile(t *testing.T, rel string) *parser.Graph {
+	t.Helper()
+	path := filepath.Join("..", "..", "testdata", rel)
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("ReadFile %q: %v", path, err)
+	}
+	g, err := parser.ParseTurtle(strings.NewReader(string(b)), "http://test/")
+	if err != nil {
+		t.Fatalf("ParseTurtle %q: %v", rel, err)
+	}
+	return g
+}
+
+// findNode returns the Node with the given ID, or nil if not found.
+func findNode(nodes []graph.Node, id string) *graph.Node {
+	for i := range nodes {
+		if nodes[i].ID == id {
+			return &nodes[i]
+		}
+	}
+	return nil
+}
+
+// hasLink reports whether links contains a link with the given source, target,
+// and label.
+func hasLink(links []graph.Link, src, tgt, lbl string) bool {
+	for _, l := range links {
+		if l.Source == src && l.Target == tgt && l.Label == lbl {
+			return true
+		}
+	}
+	return false
+}
+
+// nodeIDs returns a sorted slice of node IDs for easy comparison.
+func nodeIDs(nodes []graph.Node) []string {
+	ids := make([]string, len(nodes))
+	for i, n := range nodes {
+		ids[i] = n.ID
+	}
+	sort.Strings(ids)
+	return ids
+}
+
+// ---------------------------------------------------------------------------
+// BuildGraphModel – nil / empty graph
+// ---------------------------------------------------------------------------
+
+func TestBuildGraphModel_NilGraph(t *testing.T) {
+	_, err := transform.BuildGraphModel(nil)
+	if err == nil {
+		t.Fatal("expected error for nil graph, got nil")
+	}
+}
+
+func TestBuildGraphModel_EmptyGraph(t *testing.T) {
+	g := &parser.Graph{}
+	gm, err := transform.BuildGraphModel(g)
+	if err != nil {
+		t.Fatalf("BuildGraphModel(empty): unexpected error: %v", err)
+	}
+	if gm.NodeCount() != 0 {
+		t.Errorf("NodeCount = %d, want 0", gm.NodeCount())
+	}
+	if gm.LinkCount() != 0 {
+		t.Errorf("LinkCount = %d, want 0", gm.LinkCount())
+	}
+}
+
+// ---------------------------------------------------------------------------
+// BuildGraphModel – simple OWL ontology (testdata/simple.ttl)
+// ---------------------------------------------------------------------------
+
+func TestBuildGraphModel_SimpleOWL(t *testing.T) {
+	g := parseTurtleFile(t, "simple.ttl")
+	gm, err := transform.BuildGraphModel(g)
+	if err != nil {
+		t.Fatalf("BuildGraphModel: %v", err)
+	}
+
+	// ── Nodes ────────────────────────────────────────────────────────────────
+	// Expected: 5 OWL classes.  hasParent is an ObjectProperty with domain AND
+	// range so it becomes an edge, not a node.
+	const (
+		iriAnimal     = "http://example.org/ontology#Animal"
+		iriVertebrate = "http://example.org/ontology#Vertebrate"
+		iriMammal     = "http://example.org/ontology#Mammal"
+		iriBird       = "http://example.org/ontology#Bird"
+		iriFish       = "http://example.org/ontology#Fish"
+		iriHasParent  = "http://example.org/ontology#hasParent"
+	)
+
+	wantNodeIDs := []string{iriAnimal, iriVertebrate, iriMammal, iriBird, iriFish}
+	sort.Strings(wantNodeIDs)
+	gotIDs := nodeIDs(gm.Nodes)
+
+	if strings.Join(gotIDs, ",") != strings.Join(wantNodeIDs, ",") {
+		t.Errorf("node IDs =\n  %v\nwant\n  %v", gotIDs, wantNodeIDs)
+	}
+
+	// All 5 nodes must be of type class.
+	for _, id := range wantNodeIDs {
+		n := findNode(gm.Nodes, id)
+		if n == nil {
+			t.Errorf("node %q not found", id)
+			continue
+		}
+		if n.Type != graph.NodeTypeClass {
+			t.Errorf("node %q Type = %q, want %q", id, n.Type, graph.NodeTypeClass)
+		}
+	}
+
+	// Node labels must come from rdfs:label.
+	wantLabels := map[string]string{
+		iriAnimal:     "Animal",
+		iriVertebrate: "Vertebrate",
+		iriMammal:     "Mammal",
+		iriBird:       "Bird",
+		iriFish:       "Fish",
+	}
+	for id, want := range wantLabels {
+		n := findNode(gm.Nodes, id)
+		if n == nil {
+			continue // already reported above
+		}
+		if n.Label != want {
+			t.Errorf("node %q Label = %q, want %q", id, n.Label, want)
+		}
+	}
+
+	// Group should be derived from the namespace.
+	for _, id := range wantNodeIDs {
+		n := findNode(gm.Nodes, id)
+		if n == nil {
+			continue
+		}
+		if n.Group != "ontology" {
+			t.Errorf("node %q Group = %q, want %q", id, n.Group, "ontology")
+		}
+	}
+
+	// hasParent must NOT be a node (it is an ObjectProperty with domain+range).
+	if findNode(gm.Nodes, iriHasParent) != nil {
+		t.Errorf("hasParent should be an edge, not a node")
+	}
+
+	// ── Links ────────────────────────────────────────────────────────────────
+	// Hierarchy links from rdfs:subClassOf.
+	wantSubClassLinks := [][2]string{
+		{iriVertebrate, iriAnimal},
+		{iriMammal, iriVertebrate},
+		{iriBird, iriVertebrate},
+		{iriFish, iriVertebrate},
+	}
+	for _, pair := range wantSubClassLinks {
+		if !hasLink(gm.Links, pair[0], pair[1], "subClassOf") {
+			t.Errorf("missing subClassOf link %s → %s", pair[0], pair[1])
+		}
+	}
+
+	// ObjectProperty edge: Animal → Animal labelled "has parent".
+	if !hasLink(gm.Links, iriAnimal, iriAnimal, "has parent") {
+		t.Errorf("missing objectProperty edge Animal → Animal (has parent)")
+	}
+
+	// ── Metadata ─────────────────────────────────────────────────────────────
+	if gm.Metadata.Title != "Simple Example Ontology" {
+		t.Errorf("Metadata.Title = %q, want %q", gm.Metadata.Title, "Simple Example Ontology")
+	}
+	if gm.Metadata.Version != "0.1.0" {
+		t.Errorf("Metadata.Version = %q, want %q", gm.Metadata.Version, "0.1.0")
+	}
+	if gm.Metadata.BaseIRI != "http://example.org/ontology" {
+		t.Errorf("Metadata.BaseIRI = %q, want %q", gm.Metadata.BaseIRI, "http://example.org/ontology")
+	}
+
+	// ── Validate ─────────────────────────────────────────────────────────────
+	if err := gm.Validate(); err != nil {
+		t.Errorf("GraphModel.Validate() = %v", err)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// BuildGraphModel – SKOS concept scheme (testdata/skos.ttl)
+// ---------------------------------------------------------------------------
+
+func TestBuildGraphModel_SKOS(t *testing.T) {
+	g := parseTurtleFile(t, "skos.ttl")
+	gm, err := transform.BuildGraphModel(g)
+	if err != nil {
+		t.Fatalf("BuildGraphModel: %v", err)
+	}
+
+	const (
+		iriColourScheme    = "http://example.org/colours#ColourScheme"
+		iriColour          = "http://example.org/colours#Colour"
+		iriPrimaryColour   = "http://example.org/colours#PrimaryColour"
+		iriSecondaryColour = "http://example.org/colours#SecondaryColour"
+		iriRed             = "http://example.org/colours#Red"
+		iriBlue            = "http://example.org/colours#Blue"
+	)
+
+	// ── Nodes ────────────────────────────────────────────────────────────────
+	wantNodeIDs := []string{
+		iriColourScheme, iriColour, iriPrimaryColour,
+		iriSecondaryColour, iriRed, iriBlue,
+	}
+	sort.Strings(wantNodeIDs)
+	gotIDs := nodeIDs(gm.Nodes)
+
+	if strings.Join(gotIDs, ",") != strings.Join(wantNodeIDs, ",") {
+		t.Errorf("node IDs =\n  %v\nwant\n  %v", gotIDs, wantNodeIDs)
+	}
+
+	// All nodes must be of type class (skos:Concept and skos:ConceptScheme).
+	for _, id := range wantNodeIDs {
+		n := findNode(gm.Nodes, id)
+		if n == nil {
+			t.Errorf("node %q not found", id)
+			continue
+		}
+		if n.Type != graph.NodeTypeClass {
+			t.Errorf("node %q Type = %q, want %q", id, n.Type, graph.NodeTypeClass)
+		}
+	}
+
+	// Labels: ColourScheme has rdfs:label "Colour Concept Scheme" which wins
+	// over skos:prefLabel per the resolution priority.  The individual concepts
+	// only have skos:prefLabel so those values are used.
+	wantLabels := map[string]string{
+		iriColourScheme:    "Colour Concept Scheme", // rdfs:label wins over skos:prefLabel
+		iriColour:          "Colour",                // skos:prefLabel "Colour"@en
+		iriPrimaryColour:   "Primary Colour",
+		iriSecondaryColour: "Secondary Colour",
+		iriRed:             "Red",
+		iriBlue:            "Blue",
+	}
+	for id, want := range wantLabels {
+		n := findNode(gm.Nodes, id)
+		if n == nil {
+			continue
+		}
+		if n.Label != want {
+			t.Errorf("node %q Label = %q, want %q", id, n.Label, want)
+		}
+	}
+
+	// ── Links (skos:broader) ─────────────────────────────────────────────────
+	wantBroaderLinks := [][2]string{
+		{iriPrimaryColour, iriColour},
+		{iriSecondaryColour, iriColour},
+		{iriRed, iriPrimaryColour},
+		{iriBlue, iriPrimaryColour},
+	}
+	for _, pair := range wantBroaderLinks {
+		if !hasLink(gm.Links, pair[0], pair[1], "broader") {
+			t.Errorf("missing broader link %s → %s", pair[0], pair[1])
+		}
+	}
+
+	// ── Validate ─────────────────────────────────────────────────────────────
+	if err := gm.Validate(); err != nil {
+		t.Errorf("GraphModel.Validate() = %v", err)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// BuildGraphModel – inline Turtle snippets for targeted unit tests
+// ---------------------------------------------------------------------------
+
+func TestBuildGraphModel_LabelFallback(t *testing.T) {
+	// Test label resolution priority:
+	//  1. rdfs:label preferred over skos:prefLabel.
+	//  2. skos:prefLabel used when no rdfs:label.
+	//  3. IRI local name used when no explicit label.
+	//  4. Full IRI used when local name cannot be extracted.
+	const src = `
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix ex:   <http://example.org/test#> .
+
+ex:WithRDFSLabel a owl:Class ;
+    rdfs:label "RDFS Label" ;
+    skos:prefLabel "SKOS Label" .
+
+ex:WithSKOSOnly a owl:Class ;
+    skos:prefLabel "SKOS Only" .
+
+ex:WithNoLabel a owl:Class .
+`
+	g := parseTurtle(t, src, "http://example.org/test")
+	gm, err := transform.BuildGraphModel(g)
+	if err != nil {
+		t.Fatalf("BuildGraphModel: %v", err)
+	}
+
+	tests := []struct {
+		iri  string
+		want string
+	}{
+		{"http://example.org/test#WithRDFSLabel", "RDFS Label"}, // rdfs:label wins
+		{"http://example.org/test#WithSKOSOnly", "SKOS Only"},   // skos:prefLabel fallback
+		{"http://example.org/test#WithNoLabel", "WithNoLabel"},  // IRI local name fallback
+	}
+
+	for _, tc := range tests {
+		n := findNode(gm.Nodes, tc.iri)
+		if n == nil {
+			t.Errorf("node %q not found", tc.iri)
+			continue
+		}
+		if n.Label != tc.want {
+			t.Errorf("node %q Label = %q, want %q", tc.iri, n.Label, tc.want)
+		}
+	}
+}
+
+func TestBuildGraphModel_DatatypeProperty(t *testing.T) {
+	// Datatype properties become nodes of type "property" linked to their domain.
+	const src = `
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix ex:   <http://example.org/dp#> .
+
+ex:Person a owl:Class .
+
+ex:name a owl:DatatypeProperty ;
+    rdfs:label "name" ;
+    rdfs:domain ex:Person .
+`
+	g := parseTurtle(t, src, "http://example.org/dp")
+	gm, err := transform.BuildGraphModel(g)
+	if err != nil {
+		t.Fatalf("BuildGraphModel: %v", err)
+	}
+
+	// ex:name must be a node of type "property".
+	n := findNode(gm.Nodes, "http://example.org/dp#name")
+	if n == nil {
+		t.Fatal("datatype property node not found")
+	}
+	if n.Type != graph.NodeTypeProperty {
+		t.Errorf("datatype property node Type = %q, want %q", n.Type, graph.NodeTypeProperty)
+	}
+
+	// Validate graph consistency.
+	if err := gm.Validate(); err != nil {
+		t.Errorf("GraphModel.Validate() = %v", err)
+	}
+}
+
+func TestBuildGraphModel_EquivalentAndDisjoint(t *testing.T) {
+	// owl:equivalentClass and owl:disjointWith should become links.
+	const src = `
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix ex:   <http://example.org/eq#> .
+
+ex:A a owl:Class .
+ex:B a owl:Class .
+ex:C a owl:Class .
+
+ex:A owl:equivalentClass ex:B .
+ex:A owl:disjointWith ex:C .
+`
+	g := parseTurtle(t, src, "http://example.org/eq")
+	gm, err := transform.BuildGraphModel(g)
+	if err != nil {
+		t.Fatalf("BuildGraphModel: %v", err)
+	}
+
+	if !hasLink(gm.Links, "http://example.org/eq#A", "http://example.org/eq#B", "equivalentClass") {
+		t.Error("missing equivalentClass link A → B")
+	}
+	if !hasLink(gm.Links, "http://example.org/eq#A", "http://example.org/eq#C", "disjointWith") {
+		t.Error("missing disjointWith link A → C")
+	}
+
+	if err := gm.Validate(); err != nil {
+		t.Errorf("GraphModel.Validate() = %v", err)
+	}
+}
+
+func TestBuildGraphModel_NamedIndividual(t *testing.T) {
+	// owl:NamedIndividual becomes a node of type "instance".
+	const src = `
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix ex:   <http://example.org/ind#> .
+
+ex:Animal a owl:Class .
+ex:Fido   a owl:NamedIndividual .
+`
+	g := parseTurtle(t, src, "http://example.org/ind")
+	gm, err := transform.BuildGraphModel(g)
+	if err != nil {
+		t.Fatalf("BuildGraphModel: %v", err)
+	}
+
+	n := findNode(gm.Nodes, "http://example.org/ind#Fido")
+	if n == nil {
+		t.Fatal("named individual node not found")
+	}
+	if n.Type != graph.NodeTypeInstance {
+		t.Errorf("named individual Type = %q, want %q", n.Type, graph.NodeTypeInstance)
+	}
+
+	if err := gm.Validate(); err != nil {
+		t.Errorf("GraphModel.Validate() = %v", err)
+	}
+}
+
+func TestBuildGraphModel_ObjectPropertyNoNodeCreated(t *testing.T) {
+	// An ObjectProperty with complete domain+range must appear as a link,
+	// not as a node.
+	const src = `
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix ex:   <http://example.org/op#> .
+
+ex:A a owl:Class .
+ex:B a owl:Class .
+
+ex:linksTo a owl:ObjectProperty ;
+    rdfs:domain ex:A ;
+    rdfs:range  ex:B .
+`
+	g := parseTurtle(t, src, "http://example.org/op")
+	gm, err := transform.BuildGraphModel(g)
+	if err != nil {
+		t.Fatalf("BuildGraphModel: %v", err)
+	}
+
+	if findNode(gm.Nodes, "http://example.org/op#linksTo") != nil {
+		t.Error("objectProperty with domain+range must not be a node")
+	}
+
+	if !hasLink(gm.Links, "http://example.org/op#A", "http://example.org/op#B", "linksTo") {
+		t.Error("missing objectProperty edge A → B (linksTo)")
+	}
+
+	if err := gm.Validate(); err != nil {
+		t.Errorf("GraphModel.Validate() = %v", err)
+	}
+}
+
+func TestBuildGraphModel_ObjectPropertyNoDomainBecomesNode(t *testing.T) {
+	// An ObjectProperty without domain or range cannot become a directed edge;
+	// it falls back to a node of type "property".
+	const src = `
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix ex:   <http://example.org/op2#> .
+
+ex:A a owl:Class .
+ex:unknownProp a owl:ObjectProperty .
+`
+	g := parseTurtle(t, src, "http://example.org/op2")
+	gm, err := transform.BuildGraphModel(g)
+	if err != nil {
+		t.Fatalf("BuildGraphModel: %v", err)
+	}
+
+	n := findNode(gm.Nodes, "http://example.org/op2#unknownProp")
+	if n == nil {
+		t.Fatal("objectProperty without domain/range should be a property node")
+	}
+	if n.Type != graph.NodeTypeProperty {
+		t.Errorf("node Type = %q, want %q", n.Type, graph.NodeTypeProperty)
+	}
+}
+
+func TestBuildGraphModel_MetadataExtraction(t *testing.T) {
+	// Verify metadata extraction from owl:Ontology + dc:title + owl:versionInfo.
+	const src = `
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix dc:   <http://purl.org/dc/elements/1.1/> .
+
+<http://example.org/meta>
+    a owl:Ontology ;
+    dc:title "Meta Ontology" ;
+    dc:description "A test ontology for metadata." ;
+    owl:versionInfo "2.0.0" .
+`
+	g := parseTurtle(t, src, "http://example.org/meta")
+	gm, err := transform.BuildGraphModel(g)
+	if err != nil {
+		t.Fatalf("BuildGraphModel: %v", err)
+	}
+
+	if gm.Metadata.Title != "Meta Ontology" {
+		t.Errorf("Title = %q, want %q", gm.Metadata.Title, "Meta Ontology")
+	}
+	if gm.Metadata.Description != "A test ontology for metadata." {
+		t.Errorf("Description = %q, want %q", gm.Metadata.Description, "A test ontology for metadata.")
+	}
+	if gm.Metadata.Version != "2.0.0" {
+		t.Errorf("Version = %q, want %q", gm.Metadata.Version, "2.0.0")
+	}
+	if gm.Metadata.BaseIRI != "http://example.org/meta" {
+		t.Errorf("BaseIRI = %q, want %q", gm.Metadata.BaseIRI, "http://example.org/meta")
+	}
+}
+
+func TestBuildGraphModel_NoDuplicateLinks(t *testing.T) {
+	// Repeated triples must not produce duplicate links.
+	const src = `
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix ex:   <http://example.org/dup#> .
+
+ex:A a owl:Class .
+ex:B a owl:Class .
+
+ex:A rdfs:subClassOf ex:B .
+ex:A rdfs:subClassOf ex:B .
+`
+	g := parseTurtle(t, src, "http://example.org/dup")
+	gm, err := transform.BuildGraphModel(g)
+	if err != nil {
+		t.Fatalf("BuildGraphModel: %v", err)
+	}
+
+	count := 0
+	for _, l := range gm.Links {
+		if l.Source == "http://example.org/dup#A" &&
+			l.Target == "http://example.org/dup#B" &&
+			l.Label == "subClassOf" {
+			count++
+		}
+	}
+	if count != 1 {
+		t.Errorf("duplicate link count = %d, want 1", count)
+	}
+}
+
+func TestBuildGraphModel_NamespaceGroup(t *testing.T) {
+	// Nodes from different namespaces get different group values.
+	const src = `
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix ex:   <http://example.org/ns1#> .
+@prefix ex2:  <http://example.org/ns2#> .
+
+ex:Alpha  a owl:Class .
+ex2:Beta  a owl:Class .
+`
+	g := parseTurtle(t, src, "http://example.org/")
+	gm, err := transform.BuildGraphModel(g)
+	if err != nil {
+		t.Fatalf("BuildGraphModel: %v", err)
+	}
+
+	alpha := findNode(gm.Nodes, "http://example.org/ns1#Alpha")
+	beta := findNode(gm.Nodes, "http://example.org/ns2#Beta")
+
+	if alpha == nil || beta == nil {
+		t.Fatal("expected both nodes to be present")
+	}
+	if alpha.Group != "ns1" {
+		t.Errorf("Alpha Group = %q, want %q", alpha.Group, "ns1")
+	}
+	if beta.Group != "ns2" {
+		t.Errorf("Beta Group = %q, want %q", beta.Group, "ns2")
+	}
+}

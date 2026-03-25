@@ -2,7 +2,7 @@
 
 **Version:** 0.1.0-draft  
 **Status:** Active  
-**Last updated:** 2026-03-25 (Phase 6 complete)
+**Last updated:** 2026-03-25 (Phase 7 complete)
 
 Progress legend: ✅ Done · 🔄 In progress · ⬜ Not started
 
@@ -95,18 +95,18 @@ Progress legend: ✅ Done · 🔄 In progress · ⬜ Not started
 
 ---
 
-## Phase 7 – Ontology → GraphModel Transform ⬜
+## Phase 7 – Ontology → GraphModel Transform ✅
 
 **Goal:** Convert a triple store into a `GraphModel`.
 
-- [ ] 7.1 Implement `internal/transform/ontology.go`
+- [x] 7.1 Implement `internal/transform/ontology.go`
       - Extract OWL classes, object properties, datatype properties
       - Extract SKOS concepts and semantic relations
       - Populate `Node.Group` from namespace prefix
-- [ ] 7.2 Implement `internal/transform/label.go` – label resolution strategy
+- [x] 7.2 Implement `internal/transform/label.go` – label resolution strategy
       (`rdfs:label` → `skos:prefLabel` → IRI fragment → full IRI)
-- [ ] 7.3 Write `internal/transform/ontology_test.go` (table-driven with testdata)
-- [ ] 7.4 Run: lint + vet + build + test; commit
+- [x] 7.3 Write `internal/transform/ontology_test.go` (table-driven with testdata)
+- [x] 7.4 Run: lint + vet + build + test; commit
 
 ---
 
