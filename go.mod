@@ -1,6 +1,6 @@
 module github.com/IndependentImpact/ttl2d3
 
-go 1.24
+go 1.25.8
 
 require (
 	github.com/deiu/gon3 v0.0.0-20241212124032-93153c038193
