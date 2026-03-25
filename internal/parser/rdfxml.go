@@ -186,7 +186,7 @@ func (p *rdfxmlParser) parsePropElement(d *xml.Decoder, se xml.StartElement, sub
 	for _, a := range se.Attr {
 		if a.Name.Space == rdfNS && a.Name.Local == "resource" {
 			p.emit(subject, pred, Term{Kind: TermIRI, Value: a.Value})
-			return consumeToEnd(d, se.Name)
+			return consumeToEnd(d)
 		}
 	}
 
@@ -194,7 +194,7 @@ func (p *rdfxmlParser) parsePropElement(d *xml.Decoder, se xml.StartElement, sub
 	for _, a := range se.Attr {
 		if a.Name.Space == rdfNS && a.Name.Local == "nodeID" {
 			p.emit(subject, pred, Term{Kind: TermBlank, Value: a.Value})
-			return consumeToEnd(d, se.Name)
+			return consumeToEnd(d)
 		}
 	}
 
@@ -208,7 +208,7 @@ func (p *rdfxmlParser) parsePropElement(d *xml.Decoder, se xml.StartElement, sub
 				inner := 1
 				return p.parsePropElements(d, se.Name, bnode, &inner)
 			case "Literal":
-				raw, err := consumeRawXML(d, se.Name)
+				raw, err := consumeRawXML(d)
 				if err != nil {
 					return err
 				}
@@ -358,7 +358,7 @@ func stripFragment(iri string) string {
 }
 
 // consumeToEnd discards tokens up to and including the matching end element.
-func consumeToEnd(d *xml.Decoder, parent xml.Name) error {
+func consumeToEnd(d *xml.Decoder) error {
 	depth := 0
 	for {
 		tok, err := d.Token()
@@ -382,7 +382,7 @@ func consumeToEnd(d *xml.Decoder, parent xml.Name) error {
 
 // consumeRawXML reads element content using Token() and returns a serialised
 // XML string, suitable for use as an rdf:XMLLiteral value.
-func consumeRawXML(d *xml.Decoder, parent xml.Name) (string, error) {
+func consumeRawXML(d *xml.Decoder) (string, error) {
 	var buf strings.Builder
 	depth := 0
 	for {
