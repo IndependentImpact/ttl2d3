@@ -35,13 +35,13 @@ Progress legend: ✅ Done · 🔄 In progress · ⬜ Not started
 
 ---
 
-## Phase 2 – Internal Graph Model ⬜
+## Phase 2 – Internal Graph Model ✅
 
 **Goal:** Core data structures with unit tests.
 
-- [ ] 2.1 Create `internal/graph/model.go` – `GraphModel`, `Node`, `Link`, `Metadata`, `NodeType`
-- [ ] 2.2 Write `internal/graph/model_test.go` – constructor and validation tests
-- [ ] 2.3 Run: lint + vet + build + test; commit
+- [x] 2.1 Create `internal/graph/model.go` – `GraphModel`, `Node`, `Link`, `Metadata`, `NodeType`
+- [x] 2.2 Write `internal/graph/model_test.go` – constructor and validation tests
+- [x] 2.3 Run: lint + vet + build + test; commit
 
 ---
 
