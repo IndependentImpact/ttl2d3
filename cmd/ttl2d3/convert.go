@@ -2,12 +2,16 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 
 	"github.com/spf13/cobra"
 
 	"github.com/IndependentImpact/ttl2d3/internal/config"
+	"github.com/IndependentImpact/ttl2d3/internal/parser"
+	"github.com/IndependentImpact/ttl2d3/internal/render"
+	"github.com/IndependentImpact/ttl2d3/internal/transform"
 )
 
 // newConvertCmd returns the `convert` sub-command with all flags from spec §3.5.
@@ -47,9 +51,7 @@ with --format. The default output format is self-contained HTML; use
 				"collideRadius", cfg.CollideRadius,
 			)
 
-			// TODO(phase-10): wire up parser → transform → render pipeline.
-			fmt.Fprintf(os.Stderr, "convert: pipeline not yet implemented (Phase 10)\n")
-			return nil
+			return runConvert(cfg)
 		},
 	}
 
@@ -64,4 +66,102 @@ with --format. The default output format is self-contained HTML; use
 	f.Float64Var(&cfg.CollideRadius, "collide-radius", cfg.CollideRadius, "D3 collision-detection radius")
 
 	return cmd
+}
+
+// runConvert executes the parser → transform → render pipeline for the given
+// configuration.  It is factored out of the cobra RunE closure so that it can
+// be called from tests directly.
+func runConvert(cfg config.Config) (retErr error) {
+	// ------------------------------------------------------------------
+	// 1. Open input reader.
+	// ------------------------------------------------------------------
+	var (
+		r        io.Reader
+		filename string
+	)
+
+	if cfg.Input == "-" {
+		r = os.Stdin
+		filename = "-"
+		slog.Debug("reading from stdin")
+	} else {
+		f, err := os.Open(cfg.Input) //nolint:gosec // path is user-supplied CLI argument
+		if err != nil {
+			return fmt.Errorf("convert: opening input file: %w", err)
+		}
+		defer f.Close() //nolint:errcheck // read-only; close errors are not actionable
+		r = f
+		filename = cfg.Input
+		slog.Debug("opened input file", "path", cfg.Input)
+	}
+
+	// ------------------------------------------------------------------
+	// 2. Parse.
+	// ------------------------------------------------------------------
+	g, err := parser.Parse(r, filename, filename, cfg.Format)
+	if err != nil {
+		return fmt.Errorf("convert: parsing input: %w", err)
+	}
+	slog.Debug("parsed triples", "count", len(g.Triples))
+
+	// ------------------------------------------------------------------
+	// 3. Transform.
+	// ------------------------------------------------------------------
+	gm, err := transform.BuildGraphModel(g)
+	if err != nil {
+		return fmt.Errorf("convert: building graph model: %w", err)
+	}
+	slog.Debug("built graph model", "nodes", len(gm.Nodes), "links", len(gm.Links))
+
+	// Apply title override from --title flag.  Setting it on the model
+	// propagates to both JSON (via Metadata) and HTML (via HTMLOptions fallback).
+	if cfg.Title != "" {
+		gm.Metadata.Title = cfg.Title
+	}
+
+	// ------------------------------------------------------------------
+	// 4. Open output writer.
+	// ------------------------------------------------------------------
+	var w io.Writer
+
+	if cfg.Out == "" {
+		w = os.Stdout
+		slog.Debug("writing to stdout")
+	} else {
+		outFile, err := os.Create(cfg.Out) //nolint:gosec // path is user-supplied CLI argument
+		if err != nil {
+			return fmt.Errorf("convert: creating output file: %w", err)
+		}
+		// Capture close errors for the output file: a failed close may indicate
+		// that the kernel could not flush the write buffer to disk.
+		defer func() {
+			if cerr := outFile.Close(); cerr != nil && retErr == nil {
+				retErr = fmt.Errorf("convert: closing output file: %w", cerr)
+			}
+		}()
+		w = outFile
+		slog.Debug("opened output file", "path", cfg.Out)
+	}
+
+	// ------------------------------------------------------------------
+	// 5. Render.
+	// ------------------------------------------------------------------
+	switch cfg.Output {
+	case config.OutputJSON:
+		if err := render.RenderJSON(gm, w); err != nil {
+			return fmt.Errorf("convert: rendering JSON: %w", err)
+		}
+	default: // config.OutputHTML
+		opts := render.HTMLOptions{
+			LinkDistance:   cfg.LinkDistance,
+			ChargeStrength: cfg.ChargeStrength,
+			CollideRadius:  cfg.CollideRadius,
+		}
+		if err := render.RenderHTML(gm, opts, w); err != nil {
+			return fmt.Errorf("convert: rendering HTML: %w", err)
+		}
+	}
+
+	slog.Debug("conversion complete")
+	return nil
 }

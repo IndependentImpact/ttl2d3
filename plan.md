@@ -2,7 +2,7 @@
 
 **Version:** 0.1.0-draft  
 **Status:** Active  
-**Last updated:** 2026-03-25 (Phase 9 complete)
+**Last updated:** 2026-03-25 (Phase 10 complete)
 
 Progress legend: ✅ Done · 🔄 In progress · ⬜ Not started
 
@@ -145,16 +145,16 @@ Progress legend: ✅ Done · 🔄 In progress · ⬜ Not started
 
 ---
 
-## Phase 10 – CLI Wiring ⬜
+## Phase 10 – CLI Wiring ✅
 
 **Goal:** End-to-end pipeline works from the CLI.
 
-- [ ] 10.1 Connect `convert` command to parser → transform → render pipeline
-- [ ] 10.2 Handle stdin input (`--input -`)
-- [ ] 10.3 Handle stdout output (default when `--out` not specified)
-- [ ] 10.4 Write `cmd/ttl2d3/convert_test.go` (integration, `//go:build integration`)
-- [ ] 10.5 Write end-to-end test in `e2e/e2e_test.go` (integration)
-- [ ] 10.6 Run: lint + vet + build + test (unit + integration); commit
+- [x] 10.1 Connect `convert` command to parser → transform → render pipeline
+- [x] 10.2 Handle stdin input (`--input -`)
+- [x] 10.3 Handle stdout output (default when `--out` not specified)
+- [x] 10.4 Write `cmd/ttl2d3/convert_test.go` (integration, `//go:build integration`)
+- [x] 10.5 Write end-to-end test in `e2e/e2e_test.go` (integration)
+- [x] 10.6 Run: lint + vet + build + test (unit + integration); commit
 
 ---
 
