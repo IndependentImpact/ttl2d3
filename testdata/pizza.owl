@@ -1,0 +1,90 @@
+<?xml version="1.0"?>
+<!--
+  pizza.owl – a minimal Pizza ontology in RDF/XML format.
+  Used as a test fixture for the ttl2d3 RDF/XML parser.
+
+  Triples produced (27 total):
+    1.  <pizza>                 rdf:type          owl:Ontology
+    2.  <pizza>                 rdfs:label        "Pizza Ontology"@en
+    3.  <pizza#Food>            rdf:type          owl:Class
+    4.  <pizza#Food>            rdfs:label        "Food"@en
+    5.  <pizza#Pizza>           rdf:type          owl:Class
+    6.  <pizza#Pizza>           rdfs:label        "Pizza"@en
+    7.  <pizza#Pizza>           rdfs:subClassOf   <pizza#Food>
+    8.  <pizza#PizzaTopping>    rdf:type          owl:Class
+    9.  <pizza#PizzaTopping>    rdfs:label        "Pizza Topping"@en
+   10.  <pizza#PizzaTopping>    rdfs:subClassOf   <pizza#Food>
+   11.  <pizza#PizzaBase>       rdf:type          owl:Class
+   12.  <pizza#PizzaBase>       rdfs:label        "Pizza Base"@en
+   13.  <pizza#PizzaBase>       rdfs:subClassOf   <pizza#Food>
+   14.  <pizza#MargheritaPizza> rdf:type          owl:Class
+   15.  <pizza#MargheritaPizza> rdfs:label        "Margherita Pizza"@en
+   16.  <pizza#MargheritaPizza> rdfs:subClassOf   <pizza#Pizza>
+   17.  <pizza#CheeseTopping>   rdf:type          owl:Class
+   18.  <pizza#CheeseTopping>   rdfs:label        "Cheese Topping"@en
+   19.  <pizza#CheeseTopping>   rdfs:subClassOf   <pizza#PizzaTopping>
+   20.  <pizza#hasTopping>      rdf:type          owl:ObjectProperty
+   21.  <pizza#hasTopping>      rdfs:label        "has topping"@en
+   22.  <pizza#hasTopping>      rdfs:domain       <pizza#Pizza>
+   23.  <pizza#hasTopping>      rdfs:range        <pizza#PizzaTopping>
+   24.  <pizza#hasBase>         rdf:type          owl:ObjectProperty
+   25.  <pizza#hasBase>         rdfs:label        "has base"@en
+   26.  <pizza#hasBase>         rdfs:domain       <pizza#Pizza>
+   27.  <pizza#hasBase>         rdfs:range        <pizza#PizzaBase>
+-->
+<rdf:RDF
+    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+    xmlns:owl="http://www.w3.org/2002/07/owl#"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+    xml:base="http://example.org/pizza">
+
+  <!-- Ontology declaration -->
+  <owl:Ontology rdf:about="http://example.org/pizza">
+    <rdfs:label xml:lang="en">Pizza Ontology</rdfs:label>
+  </owl:Ontology>
+
+  <!-- Classes -->
+  <owl:Class rdf:about="http://example.org/pizza#Food">
+    <rdfs:label xml:lang="en">Food</rdfs:label>
+  </owl:Class>
+
+  <owl:Class rdf:about="http://example.org/pizza#Pizza">
+    <rdfs:label xml:lang="en">Pizza</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://example.org/pizza#Food"/>
+  </owl:Class>
+
+  <owl:Class rdf:about="http://example.org/pizza#PizzaTopping">
+    <rdfs:label xml:lang="en">Pizza Topping</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://example.org/pizza#Food"/>
+  </owl:Class>
+
+  <owl:Class rdf:about="http://example.org/pizza#PizzaBase">
+    <rdfs:label xml:lang="en">Pizza Base</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://example.org/pizza#Food"/>
+  </owl:Class>
+
+  <owl:Class rdf:about="http://example.org/pizza#MargheritaPizza">
+    <rdfs:label xml:lang="en">Margherita Pizza</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://example.org/pizza#Pizza"/>
+  </owl:Class>
+
+  <owl:Class rdf:about="http://example.org/pizza#CheeseTopping">
+    <rdfs:label xml:lang="en">Cheese Topping</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://example.org/pizza#PizzaTopping"/>
+  </owl:Class>
+
+  <!-- Object properties -->
+  <owl:ObjectProperty rdf:about="http://example.org/pizza#hasTopping">
+    <rdfs:label xml:lang="en">has topping</rdfs:label>
+    <rdfs:domain rdf:resource="http://example.org/pizza#Pizza"/>
+    <rdfs:range rdf:resource="http://example.org/pizza#PizzaTopping"/>
+  </owl:ObjectProperty>
+
+  <owl:ObjectProperty rdf:about="http://example.org/pizza#hasBase">
+    <rdfs:label xml:lang="en">has base</rdfs:label>
+    <rdfs:domain rdf:resource="http://example.org/pizza#Pizza"/>
+    <rdfs:range rdf:resource="http://example.org/pizza#PizzaBase"/>
+  </owl:ObjectProperty>
+
+</rdf:RDF>
