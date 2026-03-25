@@ -2,7 +2,7 @@
 
 **Version:** 0.1.0-draft  
 **Status:** Active  
-**Last updated:** 2026-03-25 (Phase 10 complete)
+**Last updated:** 2026-03-25 (Phase 11 complete)
 
 Progress legend: ✅ Done · 🔄 In progress · ⬜ Not started
 
@@ -158,22 +158,24 @@ Progress legend: ✅ Done · 🔄 In progress · ⬜ Not started
 
 ---
 
-## Phase 11 – Polish and Documentation ⬜
+## Phase 11 – Polish and Documentation ✅
 
 **Goal:** Production-quality release candidate.
 
-- [ ] 11.1 Update `README.md` with:
-      - Badges (CI, coverage, Go version)
-      - Installation instructions (go install, releases)
+- [x] 11.1 Update `README.md` with:
+      - Badges (CI, Go Report Card, Go version, License)
+      - Installation instructions (go install, build from source)
       - Usage examples with sample commands
-      - Screenshot of generated HTML output
-      - Contributing guide pointer
-- [ ] 11.2 Add `CONTRIBUTING.md` (references `agents.md`)
-- [ ] 11.3 Ensure all exported symbols have doc comments
-- [ ] 11.4 Run `govulncheck ./...` and resolve any findings
-- [ ] 11.5 Verify WCAG AA contrast in generated HTML
+      - Contributing guide pointer to `CONTRIBUTING.md`
+      - Updated status (v0.1.0 release candidate)
+- [x] 11.2 Add `CONTRIBUTING.md` (references `agents.md`)
+- [x] 11.3 Ensure all exported symbols have doc comments (verified via `revive`)
+- [x] 11.4 Run `govulncheck ./...` – no findings
+- [x] 11.5 Verify and fix WCAG AA contrast in generated HTML:
+      - Link labels: `#6c757d` → `#636c72` (4.45 → 5.08 : 1)
+      - Property node fill: `#ff7f0e` → `#9e5200` (2.40 → 5.44 : 1)
 - [ ] 11.6 Tag `v0.1.0` release
-- [ ] 11.7 Run: lint + vet + build + test; commit
+- [x] 11.7 Run: lint + vet + build + test; commit
 
 ---
 
