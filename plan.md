@@ -2,7 +2,7 @@
 
 **Version:** 0.1.0-draft  
 **Status:** Active  
-**Last updated:** 2026-03-25 (Phase 8 complete)
+**Last updated:** 2026-03-25 (Phase 9 complete)
 
 Progress legend: ✅ Done · 🔄 In progress · ⬜ Not started
 
@@ -122,13 +122,13 @@ Progress legend: ✅ Done · 🔄 In progress · ⬜ Not started
 
 ---
 
-## Phase 9 – HTML Renderer ⬜
+## Phase 9 – HTML Renderer ✅
 
 **Goal:** Emit a self-contained interactive HTML page.
 
-- [ ] 9.1 Create `internal/render/templates/graph.html` – Go `html/template` file
+- [x] 9.1 Create `internal/render/templates/graph.html` – Go `html/template` file
       with embedded D3 v7 script
-- [ ] 9.2 Implement force simulation in the template:
+- [x] 9.2 Implement force simulation in the template:
       - `d3.forceSimulation` with configurable parameters
       - `d3.zoom` for pan/zoom
       - Drag-and-drop on nodes
@@ -136,11 +136,12 @@ Progress legend: ✅ Done · 🔄 In progress · ⬜ Not started
       - Node shape/colour by type
       - Legend
       - Search/filter input
-- [ ] 9.3 Implement `internal/render/html.go` – execute template with `GraphModel`
-- [ ] 9.4 Write `internal/render/html_test.go` – check rendered output contains
+- [x] 9.3 Implement `internal/render/html.go` – execute template with `GraphModel`;
+      add `HTMLOptions` and `DefaultHTMLOptions`
+- [x] 9.4 Write `internal/render/html_test.go` – check rendered output contains
       expected HTML fragments; golden-file diff for full output
-- [ ] 9.5 Manually test with sample ontologies; take screenshots for PR review
-- [ ] 9.6 Run: lint + vet + build + test; commit
+- [x] 9.5 Manually test with sample ontologies; take screenshots for PR review
+- [x] 9.6 Run: lint + vet + build + test; commit
 
 ---
 
