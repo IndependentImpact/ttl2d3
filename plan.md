@@ -13,25 +13,25 @@ Progress legend: ✅ Done · 🔄 In progress · ⬜ Not started
 - [x] Create `agents.md` (repo-wide AI + dev instructions)
 - [x] Create `spec.md` (requirements and architecture)
 - [x] Create `plan.md` (this file)
-- [ ] Update `README.md` with project description, install, and usage section
+- [x] Update `README.md` with project description, install, and usage section
 
 ---
 
-## Phase 1 – Go Module + CLI Skeleton ⬜
+## Phase 1 – Go Module + CLI Skeleton ✅
 
 **Goal:** `go build ./...` succeeds and `ttl2d3 --help` works.
 
-- [ ] 1.1 `go mod init github.com/IndependentImpact/ttl2d3`
-- [ ] 1.2 Add `cobra` dependency (`github.com/spf13/cobra`)
-- [ ] 1.3 Create `cmd/ttl2d3/main.go` with root command and `version` sub-command
-- [ ] 1.4 Create `cmd/ttl2d3/convert.go` with `convert` sub-command and all flags
+- [x] 1.1 `go mod init github.com/IndependentImpact/ttl2d3`
+- [x] 1.2 Add `cobra` dependency (`github.com/spf13/cobra`)
+- [x] 1.3 Create `cmd/ttl2d3/main.go` with root command and `version` sub-command
+- [x] 1.4 Create `cmd/ttl2d3/convert.go` with `convert` sub-command and all flags
       (see spec §3.5)
-- [ ] 1.5 Create `internal/config/config.go` – flag values struct + validation
-- [ ] 1.6 Wire up structured logging (`log/slog`) with `--verbose` flag
-- [ ] 1.7 Add `.golangci.yml` linter configuration
-- [ ] 1.8 Add `.github/workflows/ci.yml` GitHub Actions pipeline
-- [ ] 1.9 Add `.gitignore`
-- [ ] 1.10 Run: lint + vet + build + test; commit
+- [x] 1.5 Create `internal/config/config.go` – flag values struct + validation
+- [x] 1.6 Wire up structured logging (`log/slog`) with `--verbose` flag
+- [x] 1.7 Add `.golangci.yml` linter configuration
+- [x] 1.8 Add `.github/workflows/ci.yml` GitHub Actions pipeline
+- [x] 1.9 Add `.gitignore`
+- [x] 1.10 Run: lint + vet + build + test; commit
 
 ---
 
