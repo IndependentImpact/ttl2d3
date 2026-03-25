@@ -124,10 +124,10 @@ func TestParse(t *testing.T) {
 	}{
 		// Explicit format overrides
 		{
-			name:     "explicit turtle format",
-			filename: "anything.txt",
-			format:   config.InputTurtle,
-			content:  `@prefix owl: <http://www.w3.org/2002/07/owl#> . <http://example.org/A> a owl:Class .`,
+			name:        "explicit turtle format",
+			filename:    "anything.txt",
+			format:      config.InputTurtle,
+			content:     `@prefix owl: <http://www.w3.org/2002/07/owl#> . <http://example.org/A> a owl:Class .`,
 			wantTriples: 1,
 		},
 		{
@@ -154,10 +154,10 @@ func TestParse(t *testing.T) {
 		},
 		// Auto-detection via file extension
 		{
-			name:     "auto detect .ttl",
-			filename: "ontology.ttl",
-			format:   config.InputAuto,
-			content:  `@prefix owl: <http://www.w3.org/2002/07/owl#> . <http://example.org/A> a owl:Class .`,
+			name:        "auto detect .ttl",
+			filename:    "ontology.ttl",
+			format:      config.InputAuto,
+			content:     `@prefix owl: <http://www.w3.org/2002/07/owl#> . <http://example.org/A> a owl:Class .`,
 			wantTriples: 1,
 		},
 		{
@@ -206,10 +206,10 @@ func TestParse(t *testing.T) {
 		},
 		// Auto-detection via content sniffing (unknown extension / stdin)
 		{
-			name:     "sniff turtle from stdin",
-			filename: "-",
-			format:   config.InputAuto,
-			content:  `@prefix owl: <http://www.w3.org/2002/07/owl#> . <http://example.org/A> a owl:Class .`,
+			name:        "sniff turtle from stdin",
+			filename:    "-",
+			format:      config.InputAuto,
+			content:     `@prefix owl: <http://www.w3.org/2002/07/owl#> . <http://example.org/A> a owl:Class .`,
 			wantTriples: 1,
 		},
 		{
@@ -235,10 +235,10 @@ func TestParse(t *testing.T) {
 			wantTriples: 1,
 		},
 		{
-			name:     "sniff turtle from unknown extension",
-			filename: "myontology.n3",
-			format:   config.InputAuto,
-			content:  "# comment\n@prefix owl: <http://www.w3.org/2002/07/owl#> . <http://example.org/A> a owl:Class .",
+			name:        "sniff turtle from unknown extension",
+			filename:    "myontology.n3",
+			format:      config.InputAuto,
+			content:     "# comment\n@prefix owl: <http://www.w3.org/2002/07/owl#> . <http://example.org/A> a owl:Class .",
 			wantTriples: 1,
 		},
 		// Error cases
