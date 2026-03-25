@@ -181,7 +181,7 @@ func TestParseRDFXML(t *testing.T) {
     </ex:items>
   </rdf:Description>
 </rdf:RDF>`,
-			baseIRI:     "http://example.org/",
+			baseIRI: "http://example.org/",
 			// rdf:type triples for A and B (2)
 			// s ex:items list-head (1)
 			// list-head rdf:first A (1)
