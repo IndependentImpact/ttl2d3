@@ -45,17 +45,19 @@ Progress legend: ✅ Done · 🔄 In progress · ⬜ Not started
 
 ---
 
-## Phase 3 – Turtle Parser ⬜
+## Phase 3 – Turtle Parser ✅
 
 **Goal:** Parse `.ttl` files into a triple store.
 
-- [ ] 3.1 Evaluate `github.com/deiu/rdf2go` vs writing a minimal Turtle 1.1 parser
-- [ ] 3.2 Add chosen dependency / implement parser in `internal/parser/turtle.go`
-- [ ] 3.3 Add `testdata/` directory with sample Turtle files:
-      - `testdata/simple.ttl` – 5-class OWL ontology
-      - `testdata/skos.ttl` – small SKOS concept scheme
-- [ ] 3.4 Write `internal/parser/turtle_test.go` (table-driven, golden comparisons)
-- [ ] 3.5 Run: lint + vet + build + test; commit
+- [x] 3.1 Evaluate `github.com/deiu/rdf2go` vs writing a minimal Turtle 1.1 parser
+      – Decision: use `github.com/deiu/rdf2go` (pure Go, MIT, Turtle 1.1 support)
+- [x] 3.2 Add chosen dependency / implement parser in `internal/parser/turtle.go`
+      – Also added `internal/parser/triple.go` with internal `Term`, `Triple`, `Graph` types
+- [x] 3.3 Add `testdata/` directory with sample Turtle files:
+      - `testdata/simple.ttl` – 5-class OWL ontology (21 triples)
+      - `testdata/skos.ttl` – small SKOS concept scheme (23 triples)
+- [x] 3.4 Write `internal/parser/turtle_test.go` (table-driven, specific triple assertions)
+- [x] 3.5 Run: lint + vet + build + test; commit
 
 ---
 

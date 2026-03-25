@@ -1,0 +1,36 @@
+# Small SKOS concept scheme – colour taxonomy.
+# Used as test input for the ttl2d3 Turtle parser.
+
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix cs:   <http://example.org/colours#> .
+
+cs:ColourScheme a skos:ConceptScheme ;
+    rdfs:label "Colour Concept Scheme" ;
+    skos:prefLabel "Colours"@en .
+
+cs:Colour a skos:Concept ;
+    skos:prefLabel "Colour"@en ;
+    skos:inScheme cs:ColourScheme ;
+    skos:topConceptOf cs:ColourScheme .
+
+cs:PrimaryColour a skos:Concept ;
+    skos:prefLabel "Primary Colour"@en ;
+    skos:inScheme cs:ColourScheme ;
+    skos:broader cs:Colour .
+
+cs:SecondaryColour a skos:Concept ;
+    skos:prefLabel "Secondary Colour"@en ;
+    skos:inScheme cs:ColourScheme ;
+    skos:broader cs:Colour .
+
+cs:Red a skos:Concept ;
+    skos:prefLabel "Red"@en ;
+    skos:inScheme cs:ColourScheme ;
+    skos:broader cs:PrimaryColour .
+
+cs:Blue a skos:Concept ;
+    skos:prefLabel "Blue"@en ;
+    skos:inScheme cs:ColourScheme ;
+    skos:broader cs:PrimaryColour .
