@@ -1,0 +1,50 @@
+{
+  "nodes": [
+    {
+      "id": "https://example.org/Cls",
+      "label": "MyClass",
+      "type": "class",
+      "group": "example"
+    },
+    {
+      "id": "https://example.org/Prop",
+      "label": "myProp",
+      "type": "property",
+      "group": "example"
+    },
+    {
+      "id": "https://example.org/Inst",
+      "label": "MyInstance",
+      "type": "instance",
+      "group": "example"
+    },
+    {
+      "id": "https://example.org/Lit",
+      "label": "42",
+      "type": "literal"
+    }
+  ],
+  "links": [
+    {
+      "source": "https://example.org/Cls",
+      "target": "https://example.org/Prop",
+      "label": "uses"
+    },
+    {
+      "source": "https://example.org/Inst",
+      "target": "https://example.org/Cls",
+      "label": "instanceOf"
+    },
+    {
+      "source": "https://example.org/Prop",
+      "target": "https://example.org/Lit",
+      "label": "hasValue"
+    }
+  ],
+  "metadata": {
+    "title": "All Types Ontology",
+    "description": "Covers all node types.",
+    "version": "2.0",
+    "baseIRI": "https://example.org/"
+  }
+}

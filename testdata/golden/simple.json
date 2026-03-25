@@ -1,0 +1,28 @@
+{
+  "nodes": [
+    {
+      "id": "https://example.org/A",
+      "label": "A",
+      "type": "class",
+      "group": "example"
+    },
+    {
+      "id": "https://example.org/B",
+      "label": "B",
+      "type": "class",
+      "group": "example"
+    }
+  ],
+  "links": [
+    {
+      "source": "https://example.org/A",
+      "target": "https://example.org/B",
+      "label": "subClassOf"
+    }
+  ],
+  "metadata": {
+    "title": "Test Ontology",
+    "version": "1.0",
+    "baseIRI": "https://example.org/"
+  }
+}
