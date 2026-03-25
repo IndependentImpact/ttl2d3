@@ -2,7 +2,7 @@
 
 **Version:** 0.1.0-draft  
 **Status:** Active  
-**Last updated:** 2026-03-25 (Phase 4 complete)
+**Last updated:** 2026-03-25 (Phase 6 complete)
 
 Progress legend: ✅ Done · 🔄 In progress · ⬜ Not started
 
@@ -84,14 +84,14 @@ Progress legend: ✅ Done · 🔄 In progress · ⬜ Not started
 
 ---
 
-## Phase 6 – Format Detection ⬜
+## Phase 6 – Format Detection ✅
 
 **Goal:** Auto-detect input format; support `--format` override.
 
-- [ ] 6.1 Implement `internal/parser/detect.go` – extension + MIME sniffing
-- [ ] 6.2 Implement `internal/parser/parse.go` – dispatcher that calls the correct parser
-- [ ] 6.3 Write `internal/parser/detect_test.go`
-- [ ] 6.4 Run: lint + vet + build + test; commit
+- [x] 6.1 Implement `internal/parser/detect.go` – extension + MIME sniffing
+- [x] 6.2 Implement `internal/parser/parse.go` – dispatcher that calls the correct parser
+- [x] 6.3 Write `internal/parser/detect_test.go`
+- [x] 6.4 Run: lint + vet + build + test; commit
 
 ---
 
