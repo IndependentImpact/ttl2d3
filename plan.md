@@ -2,7 +2,7 @@
 
 **Version:** 0.1.0-draft  
 **Status:** Active  
-**Last updated:** 2026-03-25
+**Last updated:** 2026-03-25 (Phase 4 complete)
 
 Progress legend: ✅ Done · 🔄 In progress · ⬜ Not started
 
@@ -61,14 +61,14 @@ Progress legend: ✅ Done · 🔄 In progress · ⬜ Not started
 
 ---
 
-## Phase 4 – RDF/XML Parser ⬜
+## Phase 4 – RDF/XML Parser ✅
 
 **Goal:** Parse `.owl` / `.rdf` files into the triple store.
 
-- [ ] 4.1 Implement `internal/parser/rdfxml.go` using `encoding/xml`
-- [ ] 4.2 Add `testdata/pizza.owl` (a canonical test ontology)
-- [ ] 4.3 Write `internal/parser/rdfxml_test.go`
-- [ ] 4.4 Run: lint + vet + build + test; commit
+- [x] 4.1 Implement `internal/parser/rdfxml.go` using `encoding/xml`
+- [x] 4.2 Add `testdata/pizza.owl` (a canonical test ontology)
+- [x] 4.3 Write `internal/parser/rdfxml_test.go`
+- [x] 4.4 Run: lint + vet + build + test; commit
 
 ---
 
@@ -193,6 +193,7 @@ Progress legend: ✅ Done · 🔄 In progress · ⬜ Not started
 |------------|----------|-----------|
 | 2026-03-25 | Use `cobra` for CLI | Industry standard for Go CLIs; excellent flag + help handling |
 | 2026-03-25 | Use `github.com/deiu/rdf2go` for Turtle | Pure Go, MIT license, covers Turtle + partial JSON-LD |
+| 2026-03-25 | Use `encoding/xml` (stdlib) for RDF/XML | Zero additional dependencies; Go stdlib XML decoder handles namespaces and encoding |
 | 2026-03-25 | Use `github.com/piprate/json-gold` for JSON-LD | Most complete W3C JSON-LD 1.1 implementation in Go |
 | 2026-03-25 | Use `html/template` (stdlib) for HTML generation | Automatic HTML escaping prevents XSS; zero extra dependency |
 | 2026-03-25 | D3 v7 via CDN | Keeps generated HTML small; v7 is current stable |
