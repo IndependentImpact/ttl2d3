@@ -12,6 +12,8 @@ require (
 
 replace github.com/deiu/gon3 => ./third_party/gon3
 
+replace github.com/rychipman/easylex => ./third_party/easylex
+
 require (
 	github.com/cayleygraph/quad v1.3.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
