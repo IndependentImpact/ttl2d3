@@ -4,28 +4,28 @@ import (
 	"fmt"
 	"io"
 
-	rdf2go "github.com/deiu/rdf2go"
+	gon3 "github.com/deiu/gon3"
 )
 
 // ParseTurtle reads Turtle 1.1 input from r, using baseIRI as the document
 // base IRI, and returns a [Graph] of triples.  It returns a non-nil error if
 // the input cannot be parsed.
 func ParseTurtle(r io.Reader, baseIRI string) (*Graph, error) {
-	g := rdf2go.NewGraph(baseIRI)
-	if err := g.Parse(r, "text/turtle"); err != nil {
+	g, err := gon3.NewParser(baseIRI).Parse(r)
+	if err != nil {
 		return nil, fmt.Errorf("turtle parse error: %w", err)
 	}
 
-	out := &Graph{BaseIRI: baseIRI, Triples: make([]Triple, 0, g.Len())}
+	triples := make([]Triple, 0)
 	for t := range g.IterTriples() {
-		out.Triples = append(out.Triples, convertTriple(t))
+		triples = append(triples, convertTriple(t))
 	}
 
-	return out, nil
+	return &Graph{BaseIRI: baseIRI, Triples: triples}, nil
 }
 
-// convertTriple converts an rdf2go Triple to our internal Triple type.
-func convertTriple(t *rdf2go.Triple) Triple {
+// convertTriple converts a gon3 Triple to our internal Triple type.
+func convertTriple(t *gon3.Triple) Triple {
 	return Triple{
 		Subject:   convertTerm(t.Subject),
 		Predicate: convertTerm(t.Predicate),
@@ -33,19 +33,19 @@ func convertTriple(t *rdf2go.Triple) Triple {
 	}
 }
 
-// convertTerm converts an rdf2go Term to our internal Term type.
-func convertTerm(t rdf2go.Term) Term {
+// convertTerm converts a gon3 Term to our internal Term type.
+func convertTerm(t gon3.Term) Term {
 	switch v := t.(type) {
-	case *rdf2go.Resource:
-		return Term{Kind: TermIRI, Value: v.URI}
-	case *rdf2go.BlankNode:
-		return Term{Kind: TermBlank, Value: v.ID}
-	case *rdf2go.Literal:
+	case *gon3.IRI:
+		return Term{Kind: TermIRI, Value: v.RawValue()}
+	case *gon3.BlankNode:
+		return Term{Kind: TermBlank, Value: v.Label}
+	case *gon3.Literal:
 		dt := ""
-		if res, ok := v.Datatype.(*rdf2go.Resource); ok {
-			dt = res.URI
+		if v.DatatypeIRI != nil {
+			dt = v.DatatypeIRI.RawValue()
 		}
-		return Term{Kind: TermLiteral, Value: v.Value, Language: v.Language, Datatype: dt}
+		return Term{Kind: TermLiteral, Value: v.LexicalForm, Language: v.LanguageTag, Datatype: dt}
 	default:
 		return Term{Kind: TermIRI, Value: t.RawValue()}
 	}
