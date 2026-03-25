@@ -2,7 +2,7 @@
 
 **Version:** 0.1.0-draft  
 **Status:** Active  
-**Last updated:** 2026-03-25 (Phase 11 complete)
+**Last updated:** 2026-03-25 (Phase 12 complete)
 
 Progress legend: ✅ Done · 🔄 In progress · ⬜ Not started
 
@@ -179,14 +179,15 @@ Progress legend: ✅ Done · 🔄 In progress · ⬜ Not started
 
 ---
 
-## Phase 12 – CI/CD Hardening ⬜
+## Phase 12 – CI/CD Hardening ✅
 
-- [ ] 12.1 Add release workflow (`.github/workflows/release.yml`) using `goreleaser`
+- [x] 12.1 Add release workflow (`.github/workflows/release.yml`) using `goreleaser`
       to cross-compile for Linux/macOS/Windows × amd64/arm64
-- [ ] 12.2 Add dependabot config (`.github/dependabot.yml`) for Go modules and
+- [x] 12.2 Add dependabot config (`.github/dependabot.yml`) for Go modules and
       GitHub Actions
-- [ ] 12.3 Add code coverage reporting (Codecov or similar)
-- [ ] 12.4 Run: lint + vet + build + test; commit
+- [x] 12.3 Add code coverage reporting (Codecov) – `codecov/codecov-action@v5`
+      wired into CI; set `CODECOV_TOKEN` repository secret to activate
+- [x] 12.4 Run: lint + vet + build + test; commit
 
 ---
 

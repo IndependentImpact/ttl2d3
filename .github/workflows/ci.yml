@@ -47,7 +47,13 @@ jobs:
         run: go build ./...
 
       - name: Test (unit)
-        run: go test -cover ./...
+        run: go test -coverprofile=coverage.out -covermode=atomic ./...
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage.out
+          token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Install govulncheck
         run: go install golang.org/x/vuln/cmd/govulncheck@latest
