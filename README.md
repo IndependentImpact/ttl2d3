@@ -1,7 +1,9 @@
 # ttl2d3
 
-![CI](https://github.com/IndependentImpact/ttl2d3/actions/workflows/ci.yml/badge.svg)
-![Go version](https://img.shields.io/github/go-mod/go-version/IndependentImpact/ttl2d3)
+[![CI](https://github.com/IndependentImpact/ttl2d3/actions/workflows/ci.yml/badge.svg)](https://github.com/IndependentImpact/ttl2d3/actions/workflows/ci.yml)
+[![Go version](https://img.shields.io/github/go-mod/go-version/IndependentImpact/ttl2d3)](go.mod)
+[![Go Report Card](https://goreportcard.com/badge/github.com/IndependentImpact/ttl2d3)](https://goreportcard.com/report/github.com/IndependentImpact/ttl2d3)
+[![License](https://img.shields.io/github/license/IndependentImpact/ttl2d3)](LICENSE)
 
 > Convert semantic-web ontologies and concept schemes to interactive D3.js
 > force-directed graph visualisations.
@@ -18,7 +20,7 @@ RDF formats (`.ttl`, `.owl`, `.jsonld`, `.rdf`) and produces either:
 
 ## Status
 
-🚧 **Pre-release – Phase 1 (CLI skeleton) complete; parsers and renderers in progress.**  
+✅ **v0.1.0 release candidate** – all phases 1–11 complete.  
 See [`plan.md`](plan.md) for the full implementation roadmap and
 [`spec.md`](spec.md) for the detailed specification.
 
@@ -110,6 +112,12 @@ go build ./...
 # Test (unit)
 go test ./...
 
+# Test (unit + integration)
+go test -tags integration ./...
+
+# Check for known vulnerabilities
+govulncheck ./...
+
 # Build CLI binary
 go build -o ttl2d3 ./cmd/ttl2d3
 ```
@@ -121,13 +129,13 @@ go build -o ttl2d3 ./cmd/ttl2d3
 * [`agents.md`](agents.md) – Repo-wide instructions for contributors and AI agents
 * [`spec.md`](spec.md) – Full requirements and architecture specification
 * [`plan.md`](plan.md) – Phased implementation plan with progress tracking
+* [`CONTRIBUTING.md`](CONTRIBUTING.md) – Contribution guidelines
 
 ---
 
 ## Contributing
 
-Read [`agents.md`](agents.md) before making any changes.  Every PR must pass
-lint, vet, build, and tests.
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for detailed contribution guidelines.
 
 ## License
 
