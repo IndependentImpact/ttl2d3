@@ -2,7 +2,7 @@
 
 **Version:** 0.1.0-draft  
 **Status:** Active  
-**Last updated:** 2026-03-25 (Phase 7 complete)
+**Last updated:** 2026-03-25 (Phase 8 complete)
 
 Progress legend: ✅ Done · 🔄 In progress · ⬜ Not started
 
@@ -110,15 +110,15 @@ Progress legend: ✅ Done · 🔄 In progress · ⬜ Not started
 
 ---
 
-## Phase 8 – JSON Renderer ⬜
+## Phase 8 – JSON Renderer ✅
 
 **Goal:** Emit the D3-compatible JSON output.
 
-- [ ] 8.1 Implement `internal/render/json.go` – serialize `GraphModel` to JSON
+- [x] 8.1 Implement `internal/render/json.go` – serialize `GraphModel` to JSON
       conforming to Appendix A of spec
-- [ ] 8.2 Write `internal/render/json_test.go` with golden-file comparison
+- [x] 8.2 Write `internal/render/json_test.go` with golden-file comparison
       (`testdata/golden/*.json`)
-- [ ] 8.3 Run: lint + vet + build + test; commit
+- [x] 8.3 Run: lint + vet + build + test; commit
 
 ---
 
