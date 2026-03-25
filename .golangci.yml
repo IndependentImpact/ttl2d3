@@ -1,0 +1,45 @@
+run:
+  timeout: 5m
+  go: "1.22"
+
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gofmt
+    - goimports
+    - misspell
+    - gosec
+    - revive
+    - godot
+    - noctx
+    - bodyclose
+    - exportloopref
+    - unparam
+
+linters-settings:
+  goimports:
+    local-prefixes: github.com/IndependentImpact/ttl2d3
+  revive:
+    rules:
+      - name: exported
+        arguments:
+          - disableStutteringCheck
+  godot:
+    scope: declarations
+    capital: true
+
+issues:
+  exclude-rules:
+    # Allow fmt.Fprintf in cmd/ (CLI output is intentional).
+    - path: ^cmd/
+      linters:
+        - forbidigo
+    # Test files may use t.Fatal, t.Error, etc. without wrapping.
+    - path: _test\.go
+      linters:
+        - gosec

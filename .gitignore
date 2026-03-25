@@ -1,0 +1,16 @@
+# Build artefacts
+/ttl2d3
+/ttl2d3.exe
+dist/
+
+# Go toolchain
+vendor/
+*.test
+*.out
+coverage.html
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/

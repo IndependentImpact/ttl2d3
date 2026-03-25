@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    name: Lint · Vet · Build · Test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install goimports
+        run: go install golang.org/x/tools/cmd/goimports@latest
+
+      - name: Format check
+        run: |
+          out=$(goimports -l .)
+          if [ -n "$out" ]; then
+            echo "The following files are not goimports-formatted:"
+            echo "$out"
+            exit 1
+          fi
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Build
+        run: go build ./...
+
+      - name: Test (unit)
+        run: go test -cover ./...
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Vulnerability scan
+        run: govulncheck ./...
