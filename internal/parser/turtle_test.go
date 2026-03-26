@@ -138,6 +138,24 @@ func TestParseTurtle(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			// Regression test: prefix declarations without whitespace between
+			// the prefix name colon and the IRI reference must parse correctly.
+			// Example: @prefix ex:<http://example.org/> (no space before <).
+			name: "prefix without space before IRI",
+			input: `@prefix ex:<http://example.org/> .
+ex:Thing a <http://www.w3.org/2002/07/owl#Class> .`,
+			baseIRI:     "http://example.org/",
+			wantTriples: 1,
+			wantErr:     false,
+			wantContains: []tripleSpec{
+				{
+					"http://example.org/Thing",
+					"http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
+					"http://www.w3.org/2002/07/owl#Class",
+				},
+			},
+		},
+		{
 			name:        "simple OWL ontology file",
 			input:       mustReadFile(t, filepath.Join("..", "..", "testdata", "simple.ttl")),
 			baseIRI:     "http://example.org/ontology",

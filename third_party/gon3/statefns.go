@@ -384,9 +384,10 @@ func lexPName(l *easylex.Lexer) easylex.StateFn {
 	}
 
 	easylex.NewMatcher().AcceptRunes(":").AssertOne(l, "Expected ':' while lexing pname")
-	// TODO: get exhaustive list of "end" chars
-	// TODO: factor this out into a matcher
-	if easylex.NewMatcher().AcceptRunes("\n\r\t\v\f ;,.#").Peek(l) {
+	// Emit a namespace-only token when the next character cannot start a
+	// PN_LOCAL (i.e. it is whitespace, punctuation, an IRI-ref '<', a
+	// collection/list delimiter, a literal quote, or end-of-file).
+	if l.Peek() == easylex.EOF || easylex.NewMatcher().AcceptRunes("\n\r\t\v\f ;,.#<()[]\"'`^@").Peek(l) {
 		l.Emit(tokenPNameNS)
 		return lexDocument
 	}
