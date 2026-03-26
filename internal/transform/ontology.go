@@ -308,13 +308,15 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 		// Object properties with both domain and range become edges.
 		// If they lack domain/range they fall back to property nodes.
 		if ntype == graph.NodeTypeProperty {
-			// Check whether this is an ObjectProperty with domain+range.
-			hasDomain := len(domainOf[iri]) > 0 || len(domainUnion[iri]) > 0
-			hasRange := len(rangeOf[iri]) > 0 || len(rangeUnion[iri]) > 0
-			if hasDomain && hasRange {
-				// Will be emitted as links in pass 3.
-				objectPropIRIs[iri] = struct{}{}
-				continue
+			if _, isObjectProp := objectProps[iri]; isObjectProp {
+				// Check whether this is an ObjectProperty with domain+range.
+				hasDomain := len(domainOf[iri]) > 0 || len(domainUnion[iri]) > 0
+				hasRange := len(rangeOf[iri]) > 0 || len(rangeUnion[iri]) > 0
+				if hasDomain && hasRange {
+					// Will be emitted as links in pass 3.
+					objectPropIRIs[iri] = struct{}{}
+					continue
+				}
 			}
 		}
 
@@ -474,6 +476,18 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 			if _, ok := nodeSet[member]; ok {
 				addLink(unionID, member, "unionOf", iriOWLUnionOf)
 			}
+		}
+	}
+
+	// Emit edges for datatype properties (domain → property node).
+	for propIRI := range datatypeProps {
+		propNodeID := propIRI
+		if _, ok := nodeSet[propNodeID]; !ok {
+			continue
+		}
+		domains := collectEndpoints(domainOf[propIRI], domainUnion[propIRI])
+		for _, dom := range domains {
+			addLink(dom, propNodeID, "", propIRI)
 		}
 	}
 

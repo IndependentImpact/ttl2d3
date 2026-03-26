@@ -377,6 +377,11 @@ ex:name a owl:DatatypeProperty ;
 		t.Errorf("datatype property node Type = %q, want %q", n.Type, graph.NodeTypeProperty)
 	}
 
+	// Domain must link to the datatype property node.
+	if !hasLink(gm.Links, "http://example.org/dp#Person", "http://example.org/dp#name", "") {
+		t.Error("missing edge Person → name for datatype property")
+	}
+
 	// Validate graph consistency.
 	if err := gm.Validate(); err != nil {
 		t.Errorf("GraphModel.Validate() = %v", err)
