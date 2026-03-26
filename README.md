@@ -41,14 +41,17 @@ cd ttl2d3
 go build -o ttl2d3 ./cmd/ttl2d3
 ```
 
+To run the locally built binary, either use `./ttl2d3` from the repo root
+or move it onto your `PATH` (the file is already executable after `go build`).
+
 ---
 
 ## Usage
 
 ```
-ttl2d3 [flags]
-ttl2d3 convert [flags]   (default sub-command)
-ttl2d3 version
+./ttl2d3 [flags]
+./ttl2d3 convert [flags]   (default sub-command)
+./ttl2d3 version
 ```
 
 ### Flags
@@ -70,16 +73,16 @@ ttl2d3 version
 
 ```bash
 # Generate a self-contained HTML diagram
-ttl2d3 convert --input my-ontology.ttl --out diagram.html
+./ttl2d3 convert --input my-ontology.ttl --out diagram.html
 
 # Generate D3 graph JSON only
-ttl2d3 convert --input my-ontology.ttl --output json --out graph.json
+./ttl2d3 convert --input my-ontology.ttl --output json --out graph.json
 
 # Read from stdin, write HTML to stdout
-cat my-ontology.ttl | ttl2d3 convert --input - --format turtle
+cat my-ontology.ttl | ./ttl2d3 convert --input - --format turtle
 
 # Print version
-ttl2d3 version
+./ttl2d3 version
 ```
 
 ---
