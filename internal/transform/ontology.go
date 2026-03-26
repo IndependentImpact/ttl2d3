@@ -34,6 +34,9 @@ const (
 	iriSKOSBroader       = "http://www.w3.org/2004/02/skos/core#broader"
 	iriSKOSNarrower      = "http://www.w3.org/2004/02/skos/core#narrower"
 	iriSKOSRelated       = "http://www.w3.org/2004/02/skos/core#related"
+	iriSKOSInScheme      = "http://www.w3.org/2004/02/skos/core#inScheme"
+	iriSKOSHasTopConcept = "http://www.w3.org/2004/02/skos/core#hasTopConcept"
+	iriSKOSTopConceptOf  = "http://www.w3.org/2004/02/skos/core#topConceptOf"
 
 	iriDCTitle       = "http://purl.org/dc/elements/1.1/title"
 	iriDCDescription = "http://purl.org/dc/elements/1.1/description"
@@ -286,6 +289,33 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 				_, tgtOK := nodeSet[objIRI]
 				if srcOK && tgtOK {
 					addLink(subjIRI, objIRI, "related")
+				}
+			}
+
+		case iriSKOSInScheme:
+			if objIRI != "" {
+				_, srcOK := nodeSet[subjIRI]
+				_, tgtOK := nodeSet[objIRI]
+				if srcOK && tgtOK {
+					addLink(subjIRI, objIRI, "inScheme")
+				}
+			}
+
+		case iriSKOSHasTopConcept:
+			if objIRI != "" {
+				_, srcOK := nodeSet[subjIRI]
+				_, tgtOK := nodeSet[objIRI]
+				if srcOK && tgtOK {
+					addLink(subjIRI, objIRI, "hasTopConcept")
+				}
+			}
+
+		case iriSKOSTopConceptOf:
+			if objIRI != "" {
+				_, srcOK := nodeSet[subjIRI]
+				_, tgtOK := nodeSet[objIRI]
+				if srcOK && tgtOK {
+					addLink(subjIRI, objIRI, "topConceptOf")
 				}
 			}
 		}

@@ -287,6 +287,72 @@ ex:Thing a <http://www.w3.org/2002/07/owl#Class> .`,
 				},
 			},
 		},
+		{
+			// Regression test: local names that contain a slash character
+			// (e.g. rep:domain/GENERAL) must be parsed without error.  This is
+			// a common real-world pattern (path-style IRI local parts) that the
+			// Turtle 1.1 spec requires to be escaped as '\/' but many
+			// ontologies use unescaped.  The parser accepts them leniently.
+			name: "slash in local name",
+			input: `@prefix rep: <https://independentimpact.org/ns/reputation#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+rep:domain/GENERAL a skos:Concept .`,
+			baseIRI:     "https://independentimpact.org/ns/reputation",
+			wantTriples: 1,
+			wantErr:     false,
+			wantContains: []tripleSpec{
+				{
+					"https://independentimpact.org/ns/reputation#domain/GENERAL",
+					"http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
+					"http://www.w3.org/2004/02/skos/core#Concept",
+				},
+			},
+		},
+		{
+			// Regression test: multiple slashes and deeper path segments in
+			// local names must also be handled correctly.
+			name: "multiple slashes in local name",
+			input: `@prefix ex: <http://example.org/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+ex:a/b/c rdf:type ex:Thing .`,
+			baseIRI:     "http://example.org/",
+			wantTriples: 1,
+			wantErr:     false,
+			wantContains: []tripleSpec{
+				{
+					"http://example.org/a/b/c",
+					"http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
+					"http://example.org/Thing",
+				},
+			},
+		},
+		{
+			name:        "reputation vocabulary file",
+			input:       mustReadFile(t, filepath.Join("..", "..", "testdata", "reputation-vocabulary.ttl")),
+			baseIRI:     "https://independentimpact.org/ns/reputation",
+			wantTriples: 15,
+			wantErr:     false,
+			wantContains: []tripleSpec{
+				// ConceptScheme declarations
+				{
+					"https://independentimpact.org/ns/reputation#ReputationDomainScheme",
+					"http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
+					"http://www.w3.org/2004/02/skos/core#ConceptScheme",
+				},
+				// Concept with slash local name
+				{
+					"https://independentimpact.org/ns/reputation#domain/GENERAL",
+					"http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
+					"http://www.w3.org/2004/02/skos/core#Concept",
+				},
+				// inScheme link
+				{
+					"https://independentimpact.org/ns/reputation#domain/GENERAL",
+					"http://www.w3.org/2004/02/skos/core#inScheme",
+					"https://independentimpact.org/ns/reputation#ReputationDomainScheme",
+				},
+			},
+		},
 	}
 
 	for _, tc := range tests {

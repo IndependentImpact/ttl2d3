@@ -443,7 +443,12 @@ func lexPName(l *easylex.Lexer) easylex.StateFn {
 		easylex.NewMatcher().AcceptRunes(":").Union(matchPNCharsU).Union(matchDigits).AssertOne(l, "Expected ':', pncharsu, or digits while lexing pname")
 	}
 	for {
-		m := easylex.NewMatcher().Union(matchPNChars).AcceptRunes(".:").MatchLookAheadRun(l, easylex.NewMatcher().Union(matchPNChars).AcceptRunes(`.:\%`))
+		// Accept PN_CHARS | '.' | ':' | '/' as continuation characters.
+		// '/' is a lenient extension: the Turtle 1.1 spec requires it to be
+		// escaped as '\/' but many real-world ontologies (e.g. path-style IRIs
+		// like rep:domain/GENERAL) use it bare.  We accept it here to remain
+		// compatible with Apache Jena and other permissive parsers.
+		m := easylex.NewMatcher().Union(matchPNChars).AcceptRunes(".:/").MatchLookAheadRun(l, easylex.NewMatcher().Union(matchPNChars).AcceptRunes(`.:\%/`))
 		for {
 			switch l.Peek() {
 			case '\\':
@@ -462,7 +467,7 @@ func lexPName(l *easylex.Lexer) easylex.StateFn {
 			break
 		}
 	}
-	easylex.NewMatcher().Union(matchPNChars).AcceptRunes(":").MatchRun(l)
+	easylex.NewMatcher().Union(matchPNChars).AcceptRunes(":/").MatchRun(l)
 	l.Emit(tokenPNameLN)
 	return lexDocument
 }
