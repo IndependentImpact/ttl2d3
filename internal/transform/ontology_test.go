@@ -572,6 +572,71 @@ ex:A rdfs:subClassOf ex:B .
 	}
 }
 
+func TestBuildGraphModel_MultipleObjectPropertiesSameDomainRange(t *testing.T) {
+	// Two object properties with identical domain and range must each produce
+	// their own distinct edge (they must not overprint or be collapsed into one).
+	const src = `
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix ex:   <http://example.org/par#> .
+
+ex:A a owl:Class .
+ex:B a owl:Class .
+
+ex:prop1 a owl:ObjectProperty ;
+    rdfs:label "prop one" ;
+    rdfs:domain ex:A ;
+    rdfs:range  ex:B .
+
+ex:prop2 a owl:ObjectProperty ;
+    rdfs:label "prop two" ;
+    rdfs:domain ex:A ;
+    rdfs:range  ex:B .
+`
+	g := parseTurtle(t, src, "http://example.org/par")
+	gm, err := transform.BuildGraphModel(g)
+	if err != nil {
+		t.Fatalf("BuildGraphModel: %v", err)
+	}
+
+	const (
+		iriA = "http://example.org/par#A"
+		iriB = "http://example.org/par#B"
+	)
+
+	// Both properties must produce edges, not nodes.
+	if findNode(gm.Nodes, "http://example.org/par#prop1") != nil {
+		t.Error("prop1 should be an edge, not a node")
+	}
+	if findNode(gm.Nodes, "http://example.org/par#prop2") != nil {
+		t.Error("prop2 should be an edge, not a node")
+	}
+
+	// Both edges must be present, each with its own label.
+	if !hasLink(gm.Links, iriA, iriB, "prop one") {
+		t.Errorf("missing edge A → B (prop one)")
+	}
+	if !hasLink(gm.Links, iriA, iriB, "prop two") {
+		t.Errorf("missing edge A → B (prop two)")
+	}
+
+	// Exactly two edges between A and B; no deduplication across distinct labels.
+	count := 0
+	for _, l := range gm.Links {
+		if l.Source == iriA && l.Target == iriB {
+			count++
+		}
+	}
+	if count != 2 {
+		t.Errorf("expected 2 edges A → B, got %d", count)
+	}
+
+	if err := gm.Validate(); err != nil {
+		t.Errorf("GraphModel.Validate() = %v", err)
+	}
+}
+
 func TestBuildGraphModel_NamespaceGroup(t *testing.T) {
 	// Nodes from different namespaces get different group values.
 	const src = `

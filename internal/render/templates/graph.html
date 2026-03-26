@@ -68,6 +68,7 @@
 
     /* ── Links ────────────────────────────────────────────────────────────── */
     .link {
+      fill: none;
       stroke: #868e96;
       stroke-opacity: 0.6;
       stroke-width: 1.5px;
@@ -275,13 +276,42 @@
     const nodes = (graphData.nodes || []).map((d) => Object.assign({}, d));
     const links = (graphData.links || []).map((d) => Object.assign({}, d));
 
+    /* ── Pre-compute parallel-edge curvature ────────────────────────────── */
+    // Group links by directed (source, target) pair and assign each a
+    // perpendicular offset so that parallel edges do not overprint.
+    (function () {
+      // 40 px provides enough visual separation between parallel arcs without
+      // making the curves appear too extreme for typical ontology graphs.
+      const CURVE_STEP = 40; // pixels of perpendicular offset per parallel slot
+      // Null byte separator: IRIs cannot contain \x00, so it is safe to use as
+      // a composite key separator that cannot appear in any IRI value.
+      const SEP = '\x00';
+      const counts  = Object.create(null);
+      const idxCtrs = Object.create(null);
+
+      links.forEach((d) => {
+        const k = d.source + SEP + d.target;
+        counts[k] = (counts[k] || 0) + 1;
+      });
+
+      links.forEach((d) => {
+        const k = d.source + SEP + d.target;
+        if (idxCtrs[k] === undefined) idxCtrs[k] = 0;
+        const n = counts[k];
+        const i = idxCtrs[k]++;
+        // Centre offsets at 0: n=1→[0]; n=2→[-20,20]; n=3→[-40,0,40]; etc.
+        d._curvature = (i - (n - 1) / 2) * CURVE_STEP;
+        d._loopIdx   = i; // used to size self-loops distinctly
+      });
+    }());
+
     /* ── Link elements ──────────────────────────────────────────────────── */
     const linkGroup = root.append('g').attr('class', 'links');
     const nodeGroup = root.append('g').attr('class', 'nodes');
 
     const linkSel = linkGroup.selectAll('.link')
       .data(links)
-      .join('line')
+      .join('path')
         .attr('class', 'link')
         .attr('marker-end', 'url(#arrowhead)');
 
@@ -324,16 +354,69 @@
       .force('collide', d3.forceCollide(CFG.collideRadius))
       .on('tick', ticked);
 
+    /* ── Path helpers for curved / parallel edges ───────────────────────── */
+
+    // linkPath returns the SVG path `d` attribute string for a link.
+    // Parallel edges (same source → same target) are rendered as quadratic
+    // bezier arcs offset perpendicularly from the straight line.
+    // Self-loops (source === target) use a small cubic bezier loop.
+    //
+    // Self-loop sizing: base radius of 24 px with 16 px increments ensures
+    // multiple self-loops on the same node remain visually distinct.
+    const LOOP_BASE_RADIUS      = 24; // px – radius of the first self-loop arc
+    const LOOP_RADIUS_INCREMENT = 16; // px – added per additional self-loop
+
+    function linkPath(d) {
+      const sx = d.source.x, sy = d.source.y;
+      const tx = d.target.x, ty = d.target.y;
+
+      if (d.source === d.target) {
+        // Self-loop: cubic bezier that forms a visible loop beside the node.
+        const r = LOOP_BASE_RADIUS + d._loopIdx * LOOP_RADIUS_INCREMENT;
+        return `M ${sx},${sy} C ${sx + r},${sy - r} ${sx + r * 2},${sy} ${sx},${sy}`;
+      }
+
+      if (d._curvature === 0) {
+        return `M ${sx},${sy} L ${tx},${ty}`;
+      }
+
+      // Quadratic bezier: control point is perpendicular to the midpoint.
+      const dx = tx - sx, dy = ty - sy;
+      const len = Math.hypot(dx, dy) || 1;
+      const cpx = (sx + tx) / 2 - (dy / len) * d._curvature;
+      const cpy = (sy + ty) / 2 + (dx / len) * d._curvature;
+      return `M ${sx},${sy} Q ${cpx},${cpy} ${tx},${ty}`;
+    }
+
+    // linkMidpoint returns the {x, y} at the visual midpoint of a link path,
+    // used to position the link label.
+    function linkMidpoint(d) {
+      const sx = d.source.x, sy = d.source.y;
+      const tx = d.target.x, ty = d.target.y;
+
+      if (d.source === d.target) {
+        const r = LOOP_BASE_RADIUS + d._loopIdx * LOOP_RADIUS_INCREMENT;
+        return { x: sx + r, y: sy - r };
+      }
+
+      if (d._curvature === 0) {
+        return { x: (sx + tx) / 2, y: (sy + ty) / 2 };
+      }
+
+      const dx = tx - sx, dy = ty - sy;
+      const len = Math.hypot(dx, dy) || 1;
+      const cpx = (sx + tx) / 2 - (dy / len) * d._curvature;
+      const cpy = (sy + ty) / 2 + (dx / len) * d._curvature;
+      // Midpoint of quadratic bezier at t = 0.5.
+      return { x: (sx + 2 * cpx + tx) / 4, y: (sy + 2 * cpy + ty) / 4 };
+    }
+
     function ticked() {
-      linkSel
-        .attr('x1', (d) => d.source.x)
-        .attr('y1', (d) => d.source.y)
-        .attr('x2', (d) => d.target.x)
-        .attr('y2', (d) => d.target.y);
+      linkSel.attr('d', linkPath);
 
       linkLabelSel
-        .attr('x', (d) => (d.source.x + d.target.x) / 2)
-        .attr('y', (d) => (d.source.y + d.target.y) / 2);
+        .attr('x', (d) => linkMidpoint(d).x)
+        .attr('y', (d) => linkMidpoint(d).y);
 
       nodeSel.attr('transform', (d) => `translate(${d.x},${d.y})`);
     }
