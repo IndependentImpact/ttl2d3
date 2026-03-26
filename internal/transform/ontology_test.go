@@ -667,3 +667,146 @@ ex2:Beta  a owl:Class .
 		t.Errorf("Beta Group = %q, want %q", beta.Group, "ns2")
 	}
 }
+
+// ---------------------------------------------------------------------------
+// BuildGraphModel – SKOS inScheme / hasTopConcept / topConceptOf
+// ---------------------------------------------------------------------------
+
+func TestBuildGraphModel_SKOSInScheme(t *testing.T) {
+	// skos:inScheme triples must produce "inScheme" links between a concept
+	// and its concept scheme.
+	const src = `
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix ex:   <http://example.org/cs#> .
+
+ex:MyScheme a skos:ConceptScheme .
+
+ex:ConceptA a skos:Concept ;
+    skos:prefLabel "Concept A"@en ;
+    skos:inScheme ex:MyScheme .
+
+ex:ConceptB a skos:Concept ;
+    skos:prefLabel "Concept B"@en ;
+    skos:inScheme ex:MyScheme .
+`
+	g := parseTurtle(t, src, "http://example.org/cs")
+	gm, err := transform.BuildGraphModel(g)
+	if err != nil {
+		t.Fatalf("BuildGraphModel: %v", err)
+	}
+
+	const (
+		iriScheme   = "http://example.org/cs#MyScheme"
+		iriConceptA = "http://example.org/cs#ConceptA"
+		iriConceptB = "http://example.org/cs#ConceptB"
+	)
+
+	// Both concepts and the scheme must be nodes.
+	for _, id := range []string{iriScheme, iriConceptA, iriConceptB} {
+		if findNode(gm.Nodes, id) == nil {
+			t.Errorf("node %q not found", id)
+		}
+	}
+
+	// skos:inScheme must produce "inScheme" links from each concept to the scheme.
+	if !hasLink(gm.Links, iriConceptA, iriScheme, "inScheme") {
+		t.Errorf("missing inScheme link ConceptA → MyScheme")
+	}
+	if !hasLink(gm.Links, iriConceptB, iriScheme, "inScheme") {
+		t.Errorf("missing inScheme link ConceptB → MyScheme")
+	}
+
+	if err := gm.Validate(); err != nil {
+		t.Errorf("GraphModel.Validate() = %v", err)
+	}
+}
+
+func TestBuildGraphModel_SKOSHasTopConcept(t *testing.T) {
+	// skos:hasTopConcept must produce a "hasTopConcept" link from a scheme to
+	// its top concept, and skos:topConceptOf must produce a "topConceptOf"
+	// link from a concept to its scheme.
+	const src = `
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix ex:   <http://example.org/tc#> .
+
+ex:TopScheme a skos:ConceptScheme ;
+    skos:hasTopConcept ex:Root .
+
+ex:Root a skos:Concept ;
+    skos:prefLabel "Root"@en ;
+    skos:topConceptOf ex:TopScheme .
+`
+	g := parseTurtle(t, src, "http://example.org/tc")
+	gm, err := transform.BuildGraphModel(g)
+	if err != nil {
+		t.Fatalf("BuildGraphModel: %v", err)
+	}
+
+	const (
+		iriScheme = "http://example.org/tc#TopScheme"
+		iriRoot   = "http://example.org/tc#Root"
+	)
+
+	// Both nodes must be present.
+	if findNode(gm.Nodes, iriScheme) == nil {
+		t.Errorf("node %q not found", iriScheme)
+	}
+	if findNode(gm.Nodes, iriRoot) == nil {
+		t.Errorf("node %q not found", iriRoot)
+	}
+
+	// skos:hasTopConcept must produce a link scheme → root.
+	if !hasLink(gm.Links, iriScheme, iriRoot, "hasTopConcept") {
+		t.Errorf("missing hasTopConcept link TopScheme → Root")
+	}
+	// skos:topConceptOf must produce a link root → scheme.
+	if !hasLink(gm.Links, iriRoot, iriScheme, "topConceptOf") {
+		t.Errorf("missing topConceptOf link Root → TopScheme")
+	}
+
+	if err := gm.Validate(); err != nil {
+		t.Errorf("GraphModel.Validate() = %v", err)
+	}
+}
+
+func TestBuildGraphModel_SlashLocalName(t *testing.T) {
+	// Local names containing a slash (e.g. rep:domain/GENERAL) must be parsed
+	// correctly and the resulting IRI used as the node ID.
+	const src = `
+@prefix rep:  <https://independentimpact.org/ns/reputation#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+
+rep:MyScheme a skos:ConceptScheme .
+
+rep:domain/GENERAL a skos:Concept ;
+    skos:prefLabel "General"@en ;
+    skos:inScheme rep:MyScheme .
+`
+	g := parseTurtle(t, src, "https://independentimpact.org/ns/reputation")
+	gm, err := transform.BuildGraphModel(g)
+	if err != nil {
+		t.Fatalf("BuildGraphModel: %v", err)
+	}
+
+	const (
+		iriScheme  = "https://independentimpact.org/ns/reputation#MyScheme"
+		iriGeneral = "https://independentimpact.org/ns/reputation#domain/GENERAL"
+	)
+
+	n := findNode(gm.Nodes, iriGeneral)
+	if n == nil {
+		t.Fatalf("node %q not found", iriGeneral)
+	}
+	if n.Label != "General" {
+		t.Errorf("node %q Label = %q, want %q", iriGeneral, n.Label, "General")
+	}
+	if !hasLink(gm.Links, iriGeneral, iriScheme, "inScheme") {
+		t.Errorf("missing inScheme link domain/GENERAL → MyScheme")
+	}
+
+	if err := gm.Validate(); err != nil {
+		t.Errorf("GraphModel.Validate() = %v", err)
+	}
+}

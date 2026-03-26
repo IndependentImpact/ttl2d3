@@ -214,6 +214,7 @@ func TestRunConvert_AllFormats(t *testing.T) {
 		{name: "skos", input: "skos.ttl", wantJSON: true},
 		{name: "rdfxml", input: "pizza.owl", wantJSON: true},
 		{name: "jsonld", input: "example.jsonld", wantJSON: true},
+		{name: "reputation-vocabulary", input: "reputation-vocabulary.ttl", wantJSON: true},
 	}
 
 	for _, tc := range tests {

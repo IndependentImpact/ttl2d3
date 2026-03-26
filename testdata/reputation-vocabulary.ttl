@@ -1,0 +1,35 @@
+# Reputation vocabulary — SKOS concept schemes used as test input.
+# Tests two features:
+#   1. Local names that contain a slash (e.g. rep:domain/GENERAL), which is a
+#      common real-world pattern that requires lenient PN_LOCAL parsing.
+#   2. skos:inScheme triples, which should produce "inScheme" links in the
+#      output graph.
+
+@prefix rep:     <https://independentimpact.org/ns/reputation#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+# Concept schemes
+rep:ReputationDomainScheme a skos:ConceptScheme ;
+  dcterms:title "Reputation domains"@en .
+
+rep:ReputationEventTypeScheme a skos:ConceptScheme ;
+  dcterms:title "Reputation event types"@en .
+
+rep:AgentRoleScheme a skos:ConceptScheme ;
+  dcterms:title "Agent roles for reputation weighting"@en .
+
+# Domains (examples can be extended as needed)
+rep:domain/GENERAL a skos:Concept ;
+  skos:prefLabel "General"@en ;
+  skos:inScheme rep:ReputationDomainScheme .
+
+# Event types (examples)
+rep:event/LICENSE_ISSUED a skos:Concept ;
+  skos:prefLabel "License issued"@en ;
+  skos:inScheme rep:ReputationEventTypeScheme .
+
+# Agent roles (examples)
+rep:role/PRIMARY_AGENT a skos:Concept ;
+  skos:prefLabel "Primary agent"@en ;
+  skos:inScheme rep:AgentRoleScheme .
