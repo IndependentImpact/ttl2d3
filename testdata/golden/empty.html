@@ -285,17 +285,22 @@
     
     
     (function () {
+      
+      
       const CURVE_STEP = 40; 
+      
+      
+      const SEP = '\x00';
       const counts  = Object.create(null);
       const idxCtrs = Object.create(null);
 
       links.forEach((d) => {
-        const k = d.source + '\x00' + d.target;
+        const k = d.source + SEP + d.target;
         counts[k] = (counts[k] || 0) + 1;
       });
 
       links.forEach((d) => {
-        const k = d.source + '\x00' + d.target;
+        const k = d.source + SEP + d.target;
         if (idxCtrs[k] === undefined) idxCtrs[k] = 0;
         const n = counts[k];
         const i = idxCtrs[k]++;
@@ -360,13 +365,19 @@
     
     
     
+    
+    
+    
+    const LOOP_BASE_RADIUS      = 24; 
+    const LOOP_RADIUS_INCREMENT = 16; 
+
     function linkPath(d) {
       const sx = d.source.x, sy = d.source.y;
       const tx = d.target.x, ty = d.target.y;
 
       if (d.source === d.target) {
         
-        const r = 24 + d._loopIdx * 16;
+        const r = LOOP_BASE_RADIUS + d._loopIdx * LOOP_RADIUS_INCREMENT;
         return `M ${sx},${sy} C ${sx + r},${sy - r} ${sx + r * 2},${sy} ${sx},${sy}`;
       }
 
@@ -389,7 +400,7 @@
       const tx = d.target.x, ty = d.target.y;
 
       if (d.source === d.target) {
-        const r = 24 + d._loopIdx * 16;
+        const r = LOOP_BASE_RADIUS + d._loopIdx * LOOP_RADIUS_INCREMENT;
         return { x: sx + r, y: sy - r };
       }
 

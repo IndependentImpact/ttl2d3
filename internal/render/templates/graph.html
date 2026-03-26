@@ -280,17 +280,22 @@
     // Group links by directed (source, target) pair and assign each a
     // perpendicular offset so that parallel edges do not overprint.
     (function () {
+      // 40 px provides enough visual separation between parallel arcs without
+      // making the curves appear too extreme for typical ontology graphs.
       const CURVE_STEP = 40; // pixels of perpendicular offset per parallel slot
+      // Null byte separator: IRIs cannot contain \x00, so it is safe to use as
+      // a composite key separator that cannot appear in any IRI value.
+      const SEP = '\x00';
       const counts  = Object.create(null);
       const idxCtrs = Object.create(null);
 
       links.forEach((d) => {
-        const k = d.source + '\x00' + d.target;
+        const k = d.source + SEP + d.target;
         counts[k] = (counts[k] || 0) + 1;
       });
 
       links.forEach((d) => {
-        const k = d.source + '\x00' + d.target;
+        const k = d.source + SEP + d.target;
         if (idxCtrs[k] === undefined) idxCtrs[k] = 0;
         const n = counts[k];
         const i = idxCtrs[k]++;
@@ -355,13 +360,19 @@
     // Parallel edges (same source → same target) are rendered as quadratic
     // bezier arcs offset perpendicularly from the straight line.
     // Self-loops (source === target) use a small cubic bezier loop.
+    //
+    // Self-loop sizing: base radius of 24 px with 16 px increments ensures
+    // multiple self-loops on the same node remain visually distinct.
+    const LOOP_BASE_RADIUS      = 24; // px – radius of the first self-loop arc
+    const LOOP_RADIUS_INCREMENT = 16; // px – added per additional self-loop
+
     function linkPath(d) {
       const sx = d.source.x, sy = d.source.y;
       const tx = d.target.x, ty = d.target.y;
 
       if (d.source === d.target) {
         // Self-loop: cubic bezier that forms a visible loop beside the node.
-        const r = 24 + d._loopIdx * 16;
+        const r = LOOP_BASE_RADIUS + d._loopIdx * LOOP_RADIUS_INCREMENT;
         return `M ${sx},${sy} C ${sx + r},${sy - r} ${sx + r * 2},${sy} ${sx},${sy}`;
       }
 
@@ -384,7 +395,7 @@
       const tx = d.target.x, ty = d.target.y;
 
       if (d.source === d.target) {
-        const r = 24 + d._loopIdx * 16;
+        const r = LOOP_BASE_RADIUS + d._loopIdx * LOOP_RADIUS_INCREMENT;
         return { x: sx + r, y: sy - r };
       }
 
