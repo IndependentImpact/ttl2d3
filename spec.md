@@ -88,6 +88,7 @@ The output graph JSON follows the D3 force-directed graph convention:
 | GM-06 | Record ontology-level metadata (title, description, version, base IRI). |
 | GM-07 | Support `owl:subClassOf`, `rdfs:subClassOf`, and `skos:broader` as hierarchy edges. |
 | GM-08 | Support `owl:equivalentClass` and `owl:disjointWith` relationship edges. |
+| GM-09 | Preserve multiple object properties with identical domain + range as distinct edges, even when labels match. |
 
 ### 3.3 Output – JSON mode (`--output json`)
 | ID    | Requirement |

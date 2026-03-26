@@ -94,6 +94,12 @@ ttl2d3 version
 
 ---
 
+## Notes
+
+- Multiple object properties with the same domain and range are preserved as distinct links, even if their labels match.
+
+---
+
 ## Development
 
 ```bash

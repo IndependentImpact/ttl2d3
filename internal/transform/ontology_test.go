@@ -637,6 +637,54 @@ ex:prop2 a owl:ObjectProperty ;
 	}
 }
 
+func TestBuildGraphModel_ObjectPropertiesSameLabelSameDomainRange(t *testing.T) {
+	// Object properties that share the same domain + range AND label must
+	// still be emitted as distinct edges (dedup by predicate IRI, not label).
+	const src = `
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix ex:   <http://example.org/duplabel#> .
+
+ex:A a owl:Class .
+ex:B a owl:Class .
+
+ex:prop1 a owl:ObjectProperty ;
+    rdfs:label "related to" ;
+    rdfs:domain ex:A ;
+    rdfs:range  ex:B .
+
+ex:prop2 a owl:ObjectProperty ;
+    rdfs:label "related to" ;
+    rdfs:domain ex:A ;
+    rdfs:range  ex:B .
+`
+	g := parseTurtle(t, src, "http://example.org/duplabel")
+	gm, err := transform.BuildGraphModel(g)
+	if err != nil {
+		t.Fatalf("BuildGraphModel: %v", err)
+	}
+
+	const (
+		iriA = "http://example.org/duplabel#A"
+		iriB = "http://example.org/duplabel#B"
+	)
+
+	count := 0
+	for _, l := range gm.Links {
+		if l.Source == iriA && l.Target == iriB && l.Label == "related to" {
+			count++
+		}
+	}
+	if count != 2 {
+		t.Errorf("expected 2 edges A → B with identical labels, got %d", count)
+	}
+
+	if err := gm.Validate(); err != nil {
+		t.Errorf("GraphModel.Validate() = %v", err)
+	}
+}
+
 func TestBuildGraphModel_NamespaceGroup(t *testing.T) {
 	// Nodes from different namespaces get different group values.
 	const src = `

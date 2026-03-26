@@ -57,6 +57,9 @@ type labelEntry struct {
 // BuildGraphModel converts an RDF triple store produced by one of the parsers
 // into a [graph.GraphModel] suitable for rendering.
 //
+// Links are deduplicated per (source, target, predicate IRI) so that distinct
+// properties with identical labels remain separate edges.
+//
 // The algorithm performs three passes over the triples:
 //  1. Collect entity type declarations, candidate labels, and metadata.
 //  2. Build graph nodes from declared entities.
@@ -217,11 +220,16 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 		nodeSet[n.ID] = struct{}{}
 	}
 
+	type linkKey struct {
+		src  string
+		tgt  string
+		pred string
+	}
 	links := make([]graph.Link, 0)
-	linkSeen := make(map[[3]string]struct{}) // dedup links
+	linkSeen := make(map[linkKey]struct{}) // dedup links by predicate IRI
 
-	addLink := func(src, tgt, lbl string) {
-		key := [3]string{src, tgt, lbl}
+	addLink := func(src, tgt, lbl, predKey string) {
+		key := linkKey{src: src, tgt: tgt, pred: predKey}
 		if _, dup := linkSeen[key]; dup {
 			return
 		}
@@ -243,7 +251,7 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 				_, srcOK := nodeSet[subjIRI]
 				_, tgtOK := nodeSet[objIRI]
 				if srcOK && tgtOK {
-					addLink(subjIRI, objIRI, "subClassOf")
+					addLink(subjIRI, objIRI, "subClassOf", iriRDFSSubClassOf)
 				}
 			}
 
@@ -252,7 +260,7 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 				_, srcOK := nodeSet[subjIRI]
 				_, tgtOK := nodeSet[objIRI]
 				if srcOK && tgtOK {
-					addLink(subjIRI, objIRI, "equivalentClass")
+					addLink(subjIRI, objIRI, "equivalentClass", iriOWLEquivalentClass)
 				}
 			}
 
@@ -261,7 +269,7 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 				_, srcOK := nodeSet[subjIRI]
 				_, tgtOK := nodeSet[objIRI]
 				if srcOK && tgtOK {
-					addLink(subjIRI, objIRI, "disjointWith")
+					addLink(subjIRI, objIRI, "disjointWith", iriOWLDisjointWith)
 				}
 			}
 
@@ -270,7 +278,7 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 				_, srcOK := nodeSet[subjIRI]
 				_, tgtOK := nodeSet[objIRI]
 				if srcOK && tgtOK {
-					addLink(subjIRI, objIRI, "broader")
+					addLink(subjIRI, objIRI, "broader", iriSKOSBroader)
 				}
 			}
 
@@ -279,7 +287,7 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 				_, srcOK := nodeSet[subjIRI]
 				_, tgtOK := nodeSet[objIRI]
 				if srcOK && tgtOK {
-					addLink(subjIRI, objIRI, "narrower")
+					addLink(subjIRI, objIRI, "narrower", iriSKOSNarrower)
 				}
 			}
 
@@ -288,7 +296,7 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 				_, srcOK := nodeSet[subjIRI]
 				_, tgtOK := nodeSet[objIRI]
 				if srcOK && tgtOK {
-					addLink(subjIRI, objIRI, "related")
+					addLink(subjIRI, objIRI, "related", iriSKOSRelated)
 				}
 			}
 
@@ -297,7 +305,7 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 				_, srcOK := nodeSet[subjIRI]
 				_, tgtOK := nodeSet[objIRI]
 				if srcOK && tgtOK {
-					addLink(subjIRI, objIRI, "inScheme")
+					addLink(subjIRI, objIRI, "inScheme", iriSKOSInScheme)
 				}
 			}
 
@@ -306,7 +314,7 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 				_, srcOK := nodeSet[subjIRI]
 				_, tgtOK := nodeSet[objIRI]
 				if srcOK && tgtOK {
-					addLink(subjIRI, objIRI, "hasTopConcept")
+					addLink(subjIRI, objIRI, "hasTopConcept", iriSKOSHasTopConcept)
 				}
 			}
 
@@ -315,7 +323,7 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 				_, srcOK := nodeSet[subjIRI]
 				_, tgtOK := nodeSet[objIRI]
 				if srcOK && tgtOK {
-					addLink(subjIRI, objIRI, "topConceptOf")
+					addLink(subjIRI, objIRI, "topConceptOf", iriSKOSTopConceptOf)
 				}
 			}
 		}
@@ -329,7 +337,7 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 				_, srcOK := nodeSet[dom]
 				_, tgtOK := nodeSet[rng]
 				if srcOK && tgtOK {
-					addLink(dom, rng, propLabel)
+					addLink(dom, rng, propLabel, propIRI)
 				}
 			}
 		}
