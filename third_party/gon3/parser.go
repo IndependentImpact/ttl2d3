@@ -370,6 +370,8 @@ func (p *Parser) parsePredicate() error {
 		iri, err := p.resolvePName(tok.Val)
 		p.curPredicate = iri
 		return err
+	case easylex.TokenError:
+		return fmt.Errorf("expected predicate: %s; check that prefixed names use 'prefix:local' form, that IRIs are enclosed in '<...>', and that the 'a' keyword is not immediately followed by another prefixed name without whitespace", tok.Val)
 	default:
 		return fmt.Errorf("expected predicate, got %v (type %v)", tok, tok.Typ)
 	}

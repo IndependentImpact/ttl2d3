@@ -156,6 +156,36 @@ ex:Thing a <http://www.w3.org/2002/07/owl#Class> .`,
 			},
 		},
 		{
+			// Regression test: the 'a' keyword (rdf:type shorthand) must be
+			// recognised even when the object IRI immediately follows without
+			// any intervening whitespace (e.g. a<owl:Class>).
+			name: "a keyword without space before IRI object",
+			input: `@prefix owl: <http://www.w3.org/2002/07/owl#> .
+<http://example.org/Thing> a<http://www.w3.org/2002/07/owl#Class> .`,
+			baseIRI:     "http://example.org/",
+			wantTriples: 1,
+			wantErr:     false,
+			wantContains: []tripleSpec{
+				{
+					"http://example.org/Thing",
+					"http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
+					"http://www.w3.org/2002/07/owl#Class",
+				},
+			},
+		},
+		{
+			// Regression test: the 'a' keyword must be recognised when the
+			// object is a blank node property list that immediately follows
+			// without whitespace (e.g. a[...]).
+			name: "a keyword without space before blank node object",
+			input: `@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+<http://example.org/Thing> a[a owl:Class ; rdfs:label "Thing"] .`,
+			baseIRI:     "http://example.org/",
+			wantTriples: 3,
+			wantErr:     false,
+		},
+		{
 			name:        "simple OWL ontology file",
 			input:       mustReadFile(t, filepath.Join("..", "..", "testdata", "simple.ttl")),
 			baseIRI:     "http://example.org/ontology",

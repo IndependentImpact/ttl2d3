@@ -60,13 +60,22 @@ func lexDocument(l *easylex.Lexer) easylex.StateFn {
 			}
 		}
 		if matchA.MatchOne(l) {
-			if isWhitespace(l.Peek()) {
+			// Emit the 'a' rdf:type keyword when the character following it is
+			// not the start of a pname continuation (PN_CHARS or ':').  This
+			// handles compact Turtle such as `a<owl:Class>` or `a[...]` where
+			// whitespace before the object is omitted, while still allowing
+			// prefixed names like `adms:status` or `a:concept` to fall through
+			// to lexPName.
+			if isAKeywordTerminator(l) {
 				l.Emit(tokenA)
 				return lexDocument
 			}
 		}
 		if matchSPARQLBase.MatchOne(l) {
-			if isWhitespace(l.Peek()) {
+			next := l.Peek()
+			// Accept BASE/base even when the IRI reference immediately follows
+			// without intervening whitespace (e.g. BASE<http://...>).
+			if isWhitespace(next) || next == '<' {
 				l.Emit(tokenSPARQLBase)
 				return lexDocument
 			}
@@ -96,6 +105,37 @@ func isWhitespaceOrPunctuation(r rune) bool {
 		return true
 	}
 	return false
+}
+
+// isAKeywordTerminator reports whether the next character in l is a valid
+// terminator for the 'a' rdf:type keyword, meaning it does NOT continue a
+// PN_CHARS-based prefix name and is not a pname ':' separator.
+//
+// This distinction is needed because a single 'a' can be either:
+//   - the rdf:type shorthand keyword, followed by the object (e.g. `a owl:Class`
+//     or `a<owl:Class>` when whitespace is omitted), or
+//   - the start of a prefixed name whose namespace alias begins with 'a'
+//     (e.g. `adms:status` or `a:concept`).
+//
+// If the next char is whitespace → keyword (existing behaviour).
+// If the next char is a PN_CHARS char → pname continuation; fall to lexPName.
+// If the next char is ':' → pname separator (`a:local`); fall to lexPName.
+// Otherwise (e.g. '<', '[', '(', '"', "'") → keyword with omitted whitespace.
+func isAKeywordTerminator(l *easylex.Lexer) bool {
+	next := l.Peek()
+	if isWhitespace(next) {
+		return true
+	}
+	// ':' by itself means 'a' is a namespace alias; not a keyword terminator.
+	if next == ':' {
+		return false
+	}
+	// A PN_CHARS character means 'a' is the start of a longer prefix; not a keyword.
+	if matchPNChars.Peek(l) {
+		return false
+	}
+	// Any other character (e.g. '<', '[', '(', '"', "'") terminates the keyword.
+	return true
 }
 
 func lexComment(l *easylex.Lexer) easylex.StateFn {
