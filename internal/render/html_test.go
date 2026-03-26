@@ -265,3 +265,44 @@ func TestRenderHTML_Golden_Empty(t *testing.T) {
 	}
 	assertGolden(t, goldenPath(t, "empty.html"), &buf)
 }
+
+// ---------------------------------------------------------------------------
+// RenderHTML – parallel-edge curvature
+// ---------------------------------------------------------------------------
+
+func TestRenderHTML_ParallelEdgesUsePath(t *testing.T) {
+	// Links must be rendered as SVG <path> elements (not <line>) so that the
+	// JavaScript can apply per-edge curvature offsets for parallel edges.
+	nodes := []graph.Node{
+		graph.NewNode("https://example.org/A", "A", graph.NodeTypeClass, "example"),
+		graph.NewNode("https://example.org/B", "B", graph.NodeTypeClass, "example"),
+	}
+	links := []graph.Link{
+		graph.NewLink("https://example.org/A", "https://example.org/B", "prop one"),
+		graph.NewLink("https://example.org/A", "https://example.org/B", "prop two"),
+	}
+	gm := graph.NewGraphModel(nodes, links, graph.Metadata{})
+	var buf bytes.Buffer
+	if err := render.RenderHTML(&gm, render.HTMLOptions{}, &buf); err != nil {
+		t.Fatalf("RenderHTML: %v", err)
+	}
+	out := buf.String()
+
+	// Both link labels must appear in the embedded JSON.
+	for _, want := range []string{`"prop one"`, `"prop two"`} {
+		if !strings.Contains(out, want) {
+			t.Errorf("embedded JSON missing %q", want)
+		}
+	}
+
+	// Links must be rendered as <path> with curvature pre-computation logic.
+	if !strings.Contains(out, `join('path')`) {
+		t.Error("links must use <path> elements, not <line>")
+	}
+	if strings.Contains(out, `join('line')`) {
+		t.Error("links must not use <line> elements")
+	}
+	if !strings.Contains(out, `_curvature`) {
+		t.Error("template must include curvature pre-computation for parallel edges")
+	}
+}
