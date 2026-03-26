@@ -3,6 +3,7 @@ package transform
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/IndependentImpact/ttl2d3/internal/graph"
 	"github.com/IndependentImpact/ttl2d3/internal/parser"
@@ -10,7 +11,10 @@ import (
 
 // Well-known RDF / OWL / SKOS / Dublin Core predicate and type IRIs.
 const (
-	iriRDFType = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+	iriRDFType  = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+	iriRDFFirst = "http://www.w3.org/1999/02/22-rdf-syntax-ns#first"
+	iriRDFRest  = "http://www.w3.org/1999/02/22-rdf-syntax-ns#rest"
+	iriRDFNil   = "http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"
 
 	iriRDFSLabel      = "http://www.w3.org/2000/01/rdf-schema#label"
 	iriRDFSComment    = "http://www.w3.org/2000/01/rdf-schema#comment"
@@ -26,6 +30,7 @@ const (
 	iriOWLNamedIndividual  = "http://www.w3.org/2002/07/owl#NamedIndividual"
 	iriOWLEquivalentClass  = "http://www.w3.org/2002/07/owl#equivalentClass"
 	iriOWLDisjointWith     = "http://www.w3.org/2002/07/owl#disjointWith"
+	iriOWLUnionOf          = "http://www.w3.org/2002/07/owl#unionOf"
 	iriOWLVersionInfo      = "http://www.w3.org/2002/07/owl#versionInfo"
 
 	iriSKOSConcept       = "http://www.w3.org/2004/02/skos/core#Concept"
@@ -58,7 +63,8 @@ type labelEntry struct {
 // into a [graph.GraphModel] suitable for rendering.
 //
 // Links are deduplicated per (source, target, predicate IRI) so that distinct
-// properties with identical labels remain separate edges.
+// properties with identical labels remain separate edges. Domain/range IRIs
+// (including owl:unionOf lists) imply class nodes when not explicitly declared.
 //
 // The algorithm performs three passes over the triples:
 //  1. Collect entity type declarations, candidate labels, and metadata.
@@ -94,10 +100,42 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 	// rangeOf maps property IRI → slice of range class IRIs.
 	rangeOf := make(map[string][]string)
 
+	// objectProps tracks IRIs explicitly declared as owl:ObjectProperty.
+	objectProps := make(map[string]struct{})
+
+	// datatypeProps tracks IRIs explicitly declared as owl:DatatypeProperty.
+	datatypeProps := make(map[string]struct{})
+
+	// unionOfList maps blank node IDs to the list head term for owl:unionOf.
+	unionOfList := make(map[string]parser.Term)
+
+	// listFirst and listRest capture RDF collection nodes (rdf:first/rest).
+	listFirst := make(map[string]parser.Term)
+	listRest := make(map[string]parser.Term)
+
 	for _, t := range g.Triples {
-		subjIRI, predIRI, _ := termIRI(t.Subject), termIRI(t.Predicate), termIRI(t.Object)
-		if subjIRI == "" || predIRI == "" {
-			continue // ignore triples with blank/literal subject or predicate
+		predIRI := termIRI(t.Predicate)
+		if predIRI == "" {
+			continue // ignore triples with blank/literal predicate
+		}
+
+		// Capture RDF list / unionOf triples with blank-node subjects before
+		// skipping blank nodes in the main logic.
+		if t.Subject.Kind == parser.TermBlank {
+			switch predIRI {
+			case iriOWLUnionOf:
+				unionOfList[t.Subject.Value] = t.Object
+			case iriRDFFirst:
+				listFirst[t.Subject.Value] = t.Object
+			case iriRDFRest:
+				listRest[t.Subject.Value] = t.Object
+			}
+			continue
+		}
+
+		subjIRI := termIRI(t.Subject)
+		if subjIRI == "" {
+			continue // ignore triples with blank/literal subject
 		}
 
 		switch predIRI {
@@ -113,11 +151,15 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 				nodeTypes[subjIRI] = graph.NodeTypeClass
 			case iriOWLObjectProperty:
 				// Object properties become edges; record separately.
+				objectProps[subjIRI] = struct{}{}
 				if _, exists := nodeTypes[subjIRI]; !exists {
 					// Mark as property so we can build edges from domain/range.
 					nodeTypes[subjIRI] = graph.NodeTypeProperty
 				}
 			case iriOWLDatatypeProperty, iriOWLAnnotationProp:
+				if objIRI == iriOWLDatatypeProperty {
+					datatypeProps[subjIRI] = struct{}{}
+				}
 				nodeTypes[subjIRI] = graph.NodeTypeProperty
 			case iriOWLNamedIndividual:
 				nodeTypes[subjIRI] = graph.NodeTypeInstance
@@ -136,11 +178,23 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 		case iriRDFSDomain:
 			if objIRI := termIRI(t.Object); objIRI != "" {
 				domainOf[subjIRI] = appendUnique(domainOf[subjIRI], objIRI)
+				continue
+			}
+			if t.Object.Kind == parser.TermBlank {
+				for _, iri := range unionMembers(t.Object.Value, unionOfList, listFirst, listRest) {
+					domainOf[subjIRI] = appendUnique(domainOf[subjIRI], iri)
+				}
 			}
 
 		case iriRDFSRange:
 			if objIRI := termIRI(t.Object); objIRI != "" {
 				rangeOf[subjIRI] = appendUnique(rangeOf[subjIRI], objIRI)
+				continue
+			}
+			if t.Object.Kind == parser.TermBlank {
+				for _, iri := range unionMembers(t.Object.Value, unionOfList, listFirst, listRest) {
+					rangeOf[subjIRI] = appendUnique(rangeOf[subjIRI], iri)
+				}
 			}
 
 		// Ontology-level metadata predicates.
@@ -169,6 +223,34 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 
 	// Build the resolved label map (best candidate per IRI).
 	labels := resolvedLabels(labelCandidates)
+
+	// -----------------------------------------------------------------------
+	// Implied class nodes from object/datatype property domains and ranges.
+	// -----------------------------------------------------------------------
+
+	ensureClass := func(iri string) {
+		if iri == "" || isXMLSchemaDatatype(iri) {
+			return
+		}
+		if _, exists := nodeTypes[iri]; !exists {
+			nodeTypes[iri] = graph.NodeTypeClass
+		}
+	}
+
+	for prop := range objectProps {
+		for _, dom := range domainOf[prop] {
+			ensureClass(dom)
+		}
+		for _, rng := range rangeOf[prop] {
+			ensureClass(rng)
+		}
+	}
+
+	for prop := range datatypeProps {
+		for _, dom := range domainOf[prop] {
+			ensureClass(dom)
+		}
+	}
 
 	// -----------------------------------------------------------------------
 	// PASS 2 – Build nodes from declared entities.
@@ -404,6 +486,55 @@ func appendUnique(slice []string, s string) []string {
 		}
 	}
 	return append(slice, s)
+}
+
+// unionMembers resolves owl:unionOf lists for the given blank-node ID,
+// returning any IRI members found in order of appearance.
+func unionMembers(blankID string, unionOfList map[string]parser.Term, listFirst map[string]parser.Term, listRest map[string]parser.Term) []string {
+	head, ok := unionOfList[blankID]
+	if !ok {
+		return nil
+	}
+
+	out := make([]string, 0)
+	seen := make(map[string]struct{})
+	cur := head
+
+	for {
+		if cur.Kind == parser.TermIRI {
+			if cur.Value == iriRDFNil {
+				break
+			}
+			out = appendUnique(out, cur.Value)
+			break
+		}
+		if cur.Kind != parser.TermBlank {
+			break
+		}
+		if _, dup := seen[cur.Value]; dup {
+			break
+		}
+		seen[cur.Value] = struct{}{}
+
+		if first, ok := listFirst[cur.Value]; ok {
+			if iri := termIRI(first); iri != "" {
+				out = appendUnique(out, iri)
+			}
+		}
+
+		next, ok := listRest[cur.Value]
+		if !ok {
+			break
+		}
+		cur = next
+	}
+
+	return out
+}
+
+// isXMLSchemaDatatype reports whether iri is an XML Schema datatype IRI.
+func isXMLSchemaDatatype(iri string) bool {
+	return strings.HasPrefix(iri, "http://www.w3.org/2001/XMLSchema#")
 }
 
 // buildMetadata assembles the Metadata struct from collected information.

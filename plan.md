@@ -2,7 +2,7 @@
 
 **Version:** 0.1.0-draft  
 **Status:** Active  
-**Last updated:** 2026-03-26 (Phase 13 complete)
+**Last updated:** 2026-03-26 (Phase 14 complete)
 
 Progress legend: ✅ Done · 🔄 In progress · ⬜ Not started
 
@@ -194,6 +194,13 @@ Progress legend: ✅ Done · 🔄 In progress · ⬜ Not started
 ## Phase 13 – Bug Fixes ✅
 
 - [x] 13.1 Preserve distinct object properties that share domain + range even when labels match
+
+---
+
+## Phase 14 – Inferred Classes ✅
+
+- [x] 14.1 Promote domain/range IRIs to class nodes when not explicitly typed
+- [x] 14.2 Expand owl:unionOf domain/range lists into multiple edges
 
 ---
 
