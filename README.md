@@ -100,7 +100,8 @@ cat my-ontology.ttl | ./ttl2d3 convert --input - --format turtle
 ## Notes
 
 - Multiple object properties with the same domain and range are preserved as distinct links, even if their labels match.
-- Domain/range IRIs (including `owl:unionOf` lists) imply class nodes even without explicit class declarations.
+- Domain/range IRIs imply class nodes even without explicit class declarations.
+- `owl:unionOf` domains/ranges are visualised as explicit union nodes linked to their member classes.
 
 ---
 

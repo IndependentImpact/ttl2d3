@@ -101,6 +101,7 @@ func TestNodeTypeConstants(t *testing.T) {
 	}{
 		{graph.NodeTypeClass, "class"},
 		{graph.NodeTypeProperty, "property"},
+		{graph.NodeTypeUnion, "union"},
 		{graph.NodeTypeInstance, "instance"},
 		{graph.NodeTypeLiteral, "literal"},
 	}

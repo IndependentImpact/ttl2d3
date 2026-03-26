@@ -686,8 +686,7 @@ ex:prop2 a owl:ObjectProperty ;
 }
 
 func TestBuildGraphModel_ObjectPropertyUnionDomain(t *testing.T) {
-	// owl:unionOf domains should expand into multiple edges, and missing
-	// class declarations implied by domain/range should still appear as nodes.
+	// owl:unionOf domains should be represented as explicit union nodes.
 	const src = `
 @prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
@@ -724,12 +723,31 @@ ex:relatedTo a owl:ObjectProperty ;
 		}
 	}
 
-	// Both union members must produce edges to the range.
-	if !hasLink(gm.Links, iriA, iriC, "related to") {
-		t.Error("missing edge A → C (related to)")
+	unionNodes := make([]graph.Node, 0)
+	for _, n := range gm.Nodes {
+		if n.Type == graph.NodeTypeUnion {
+			unionNodes = append(unionNodes, n)
+		}
 	}
-	if !hasLink(gm.Links, iriB, iriC, "related to") {
-		t.Error("missing edge B → C (related to)")
+	if len(unionNodes) != 1 {
+		t.Fatalf("expected 1 union node, got %d", len(unionNodes))
+	}
+	unionID := unionNodes[0].ID
+
+	// Union node should link to its members via unionOf.
+	if !hasLink(gm.Links, unionID, iriA, "unionOf") {
+		t.Error("missing unionOf edge union → A")
+	}
+	if !hasLink(gm.Links, unionID, iriB, "unionOf") {
+		t.Error("missing unionOf edge union → B")
+	}
+
+	// Property edge should originate from the union node.
+	if !hasLink(gm.Links, unionID, iriC, "related to") {
+		t.Error("missing edge union → C (related to)")
+	}
+	if hasLink(gm.Links, iriA, iriC, "related to") || hasLink(gm.Links, iriB, iriC, "related to") {
+		t.Error("unexpected direct edges from union members to range")
 	}
 
 	if err := gm.Validate(); err != nil {

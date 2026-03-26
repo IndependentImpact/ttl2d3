@@ -100,6 +100,15 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 	// rangeOf maps property IRI → slice of range class IRIs.
 	rangeOf := make(map[string][]string)
 
+	// domainUnion maps property IRI → slice of blank node IDs representing union domains.
+	domainUnion := make(map[string][]string)
+
+	// rangeUnion maps property IRI → slice of blank node IDs representing union ranges.
+	rangeUnion := make(map[string][]string)
+
+	// unionBlankNodes tracks blank nodes used as owl:unionOf class expressions.
+	unionBlankNodes := make(map[string]struct{})
+
 	// objectProps tracks IRIs explicitly declared as owl:ObjectProperty.
 	objectProps := make(map[string]struct{})
 
@@ -181,8 +190,9 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 				continue
 			}
 			if t.Object.Kind == parser.TermBlank {
-				for _, iri := range unionMembers(t.Object.Value, unionOfList, listFirst, listRest) {
-					domainOf[subjIRI] = appendUnique(domainOf[subjIRI], iri)
+				if _, ok := unionOfList[t.Object.Value]; ok {
+					domainUnion[subjIRI] = appendUnique(domainUnion[subjIRI], t.Object.Value)
+					unionBlankNodes[t.Object.Value] = struct{}{}
 				}
 			}
 
@@ -192,8 +202,9 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 				continue
 			}
 			if t.Object.Kind == parser.TermBlank {
-				for _, iri := range unionMembers(t.Object.Value, unionOfList, listFirst, listRest) {
-					rangeOf[subjIRI] = appendUnique(rangeOf[subjIRI], iri)
+				if _, ok := unionOfList[t.Object.Value]; ok {
+					rangeUnion[subjIRI] = appendUnique(rangeUnion[subjIRI], t.Object.Value)
+					unionBlankNodes[t.Object.Value] = struct{}{}
 				}
 			}
 
@@ -224,6 +235,16 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 	// Build the resolved label map (best candidate per IRI).
 	labels := resolvedLabels(labelCandidates)
 
+	unionCache := make(map[string][]string)
+	getUnionMembers := func(blankID string) []string {
+		if members, ok := unionCache[blankID]; ok {
+			return members
+		}
+		members := unionMembers(blankID, unionOfList, listFirst, listRest)
+		unionCache[blankID] = members
+		return members
+	}
+
 	// -----------------------------------------------------------------------
 	// Implied class nodes from object/datatype property domains and ranges.
 	// -----------------------------------------------------------------------
@@ -252,6 +273,20 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 		}
 	}
 
+	for blankID := range unionBlankNodes {
+		for _, iri := range getUnionMembers(blankID) {
+			ensureClass(iri)
+		}
+	}
+
+	unionNodeIDs := make(map[string]string, len(unionBlankNodes))
+	unionNodes := make([]graph.Node, 0, len(unionBlankNodes))
+	for blankID := range unionBlankNodes {
+		unionID := unionNodeID(blankID)
+		unionNodeIDs[blankID] = unionID
+		unionNodes = append(unionNodes, graph.NewNode(unionID, "union", graph.NodeTypeUnion, "owl"))
+	}
+
 	// -----------------------------------------------------------------------
 	// PASS 2 – Build nodes from declared entities.
 	// -----------------------------------------------------------------------
@@ -274,8 +309,8 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 		// If they lack domain/range they fall back to property nodes.
 		if ntype == graph.NodeTypeProperty {
 			// Check whether this is an ObjectProperty with domain+range.
-			hasDomain := len(domainOf[iri]) > 0
-			hasRange := len(rangeOf[iri]) > 0
+			hasDomain := len(domainOf[iri]) > 0 || len(domainUnion[iri]) > 0
+			hasRange := len(rangeOf[iri]) > 0 || len(rangeUnion[iri]) > 0
 			if hasDomain && hasRange {
 				// Will be emitted as links in pass 3.
 				objectPropIRIs[iri] = struct{}{}
@@ -290,6 +325,11 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 			namespaceGroup(iri),
 		))
 	}
+
+	sort.Slice(unionNodes, func(i, j int) bool {
+		return unionNodes[i].ID < unionNodes[j].ID
+	})
+	nodes = append(nodes, unionNodes...)
 
 	// -----------------------------------------------------------------------
 	// PASS 3 – Build links from structural / semantic relationships.
@@ -317,6 +357,23 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 		}
 		linkSeen[key] = struct{}{}
 		links = append(links, graph.NewLink(src, tgt, lbl))
+	}
+
+	collectEndpoints := func(direct []string, unionRefs []string) []string {
+		out := make([]string, 0, len(direct)+len(unionRefs))
+		for _, iri := range direct {
+			if _, ok := nodeSet[iri]; ok {
+				out = appendUnique(out, iri)
+			}
+		}
+		for _, blankID := range unionRefs {
+			if unionID, ok := unionNodeIDs[blankID]; ok {
+				if _, ok := nodeSet[unionID]; ok {
+					out = appendUnique(out, unionID)
+				}
+			}
+		}
+		return out
 	}
 
 	for _, t := range g.Triples {
@@ -411,16 +468,23 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 		}
 	}
 
+	// Emit union membership edges.
+	for blankID, unionID := range unionNodeIDs {
+		for _, member := range getUnionMembers(blankID) {
+			if _, ok := nodeSet[member]; ok {
+				addLink(unionID, member, "unionOf", iriOWLUnionOf)
+			}
+		}
+	}
+
 	// Emit edges for object properties (domain → range).
 	for propIRI := range objectPropIRIs {
 		propLabel := resolveLabel(propIRI, labels)
-		for _, dom := range domainOf[propIRI] {
-			for _, rng := range rangeOf[propIRI] {
-				_, srcOK := nodeSet[dom]
-				_, tgtOK := nodeSet[rng]
-				if srcOK && tgtOK {
-					addLink(dom, rng, propLabel, propIRI)
-				}
+		domains := collectEndpoints(domainOf[propIRI], domainUnion[propIRI])
+		ranges := collectEndpoints(rangeOf[propIRI], rangeUnion[propIRI])
+		for _, dom := range domains {
+			for _, rng := range ranges {
+				addLink(dom, rng, propLabel, propIRI)
 			}
 		}
 	}
@@ -486,6 +550,12 @@ func appendUnique(slice []string, s string) []string {
 		}
 	}
 	return append(slice, s)
+}
+
+const unionNodePrefix = "urn:ttl2d3:union:"
+
+func unionNodeID(blankID string) string {
+	return unionNodePrefix + blankID
 }
 
 // unionMembers resolves owl:unionOf lists for the given blank-node ID,

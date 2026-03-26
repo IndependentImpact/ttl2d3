@@ -2,7 +2,7 @@
 
 **Version:** 0.1.0-draft  
 **Status:** Active  
-**Last updated:** 2026-03-26 (Phase 14 complete)
+**Last updated:** 2026-03-26 (Phase 15 complete)
 
 Progress legend: ✅ Done · 🔄 In progress · ⬜ Not started
 
@@ -200,7 +200,13 @@ Progress legend: ✅ Done · 🔄 In progress · ⬜ Not started
 ## Phase 14 – Inferred Classes ✅
 
 - [x] 14.1 Promote domain/range IRIs to class nodes when not explicitly typed
-- [x] 14.2 Expand owl:unionOf domain/range lists into multiple edges
+- [x] 14.2 Resolve owl:unionOf members for implied classes
+
+---
+
+## Phase 15 – Union Nodes ✅
+
+- [x] 15.1 Represent owl:unionOf class expressions as explicit union nodes
 
 ---
 
