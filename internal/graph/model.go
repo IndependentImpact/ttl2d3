@@ -14,6 +14,8 @@ const (
 	NodeTypeClass NodeType = "class"
 	// NodeTypeProperty represents an OWL datatype property.
 	NodeTypeProperty NodeType = "property"
+	// NodeTypeUnion represents an OWL class expression based on owl:unionOf.
+	NodeTypeUnion NodeType = "union"
 	// NodeTypeInstance represents an OWL named individual or SKOS concept instance.
 	NodeTypeInstance NodeType = "instance"
 	// NodeTypeLiteral represents a literal value node.

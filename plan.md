@@ -2,7 +2,7 @@
 
 **Version:** 0.1.0-draft  
 **Status:** Active  
-**Last updated:** 2026-03-25 (Phase 12 complete)
+**Last updated:** 2026-03-26 (Phase 15 complete)
 
 Progress legend: ✅ Done · 🔄 In progress · ⬜ Not started
 
@@ -188,6 +188,25 @@ Progress legend: ✅ Done · 🔄 In progress · ⬜ Not started
 - [x] 12.3 Add code coverage reporting (Codecov) – `codecov/codecov-action@v5`
       wired into CI; set `CODECOV_TOKEN` repository secret to activate
 - [x] 12.4 Run: lint + vet + build + test; commit
+
+---
+
+## Phase 13 – Bug Fixes ✅
+
+- [x] 13.1 Preserve distinct object properties that share domain + range even when labels match
+
+---
+
+## Phase 14 – Inferred Classes ✅
+
+- [x] 14.1 Promote domain/range IRIs to class nodes when not explicitly typed
+- [x] 14.2 Resolve owl:unionOf members for implied classes
+
+---
+
+## Phase 15 – Union Nodes ✅
+
+- [x] 15.1 Represent owl:unionOf class expressions as explicit union nodes
 
 ---
 

@@ -188,6 +188,7 @@ func TestRenderJSON_NodeTypeValues(t *testing.T) {
 	}{
 		{graph.NodeTypeClass, `"type": "class"`},
 		{graph.NodeTypeProperty, `"type": "property"`},
+		{graph.NodeTypeUnion, `"type": "union"`},
 		{graph.NodeTypeInstance, `"type": "instance"`},
 		{graph.NodeTypeLiteral, `"type": "literal"`},
 	}

@@ -188,7 +188,7 @@ func TestRenderHTML_LegendPresent(t *testing.T) {
 	}
 	out := buf.String()
 
-	for _, want := range []string{"Class", "Property", "Instance", "Literal"} {
+	for _, want := range []string{"Class", "Union", "Property", "Instance", "Literal"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("legend missing entry %q", want)
 		}
@@ -199,6 +199,7 @@ func TestRenderHTML_NodeTypesInOutput(t *testing.T) {
 	nodes := []graph.Node{
 		graph.NewNode("https://example.org/Cls", "MyClass", graph.NodeTypeClass, "ex"),
 		graph.NewNode("https://example.org/Prop", "myProp", graph.NodeTypeProperty, "ex"),
+		graph.NewNode("https://example.org/Union", "union", graph.NodeTypeUnion, "owl"),
 		graph.NewNode("https://example.org/Inst", "MyInstance", graph.NodeTypeInstance, "ex"),
 		graph.NewNode("https://example.org/Lit", "42", graph.NodeTypeLiteral, ""),
 	}
@@ -209,7 +210,7 @@ func TestRenderHTML_NodeTypesInOutput(t *testing.T) {
 	}
 	out := buf.String()
 
-	for _, want := range []string{`"class"`, `"property"`, `"instance"`, `"literal"`} {
+	for _, want := range []string{`"class"`, `"property"`, `"union"`, `"instance"`, `"literal"`} {
 		if !strings.Contains(out, want) {
 			t.Errorf("output missing node type %q", want)
 		}

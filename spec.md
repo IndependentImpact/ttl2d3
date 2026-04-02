@@ -88,12 +88,16 @@ The output graph JSON follows the D3 force-directed graph convention:
 | GM-06 | Record ontology-level metadata (title, description, version, base IRI). |
 | GM-07 | Support `owl:subClassOf`, `rdfs:subClassOf`, and `skos:broader` as hierarchy edges. |
 | GM-08 | Support `owl:equivalentClass` and `owl:disjointWith` relationship edges. |
+| GM-09 | Preserve multiple object properties with identical domain + range as distinct edges, even when labels match. |
+| GM-10 | Treat IRIs referenced in property `rdfs:domain` / `rdfs:range` as class nodes when not explicitly declared. |
+| GM-11 | Resolve `owl:unionOf` lists in domain/range definitions to their member IRIs. |
+| GM-12 | Represent `owl:unionOf` class expressions as explicit union nodes linked to each member via `unionOf` edges. |
 
 ### 3.3 Output – JSON mode (`--output json`)
 | ID    | Requirement |
 |-------|-------------|
 | OJ-01 | Write a UTF-8 JSON file (or stdout) containing `nodes`, `links`, and `metadata` keys. |
-| OJ-02 | Every node has: `id`, `label`, `type` (`class`\|`property`\|`instance`\|`literal`), `group`. |
+| OJ-02 | Every node has: `id`, `label`, `type` (`class`\|`property`\|`union`\|`instance`\|`literal`), `group`. |
 | OJ-03 | Every link has: `source`, `target`, `label`. |
 | OJ-04 | Output is valid against the schema defined in Appendix A. |
 
@@ -294,7 +298,7 @@ Golden-file tests compare render output against checked-in expected files in
         "properties": {
           "id":    { "type": "string" },
           "label": { "type": "string" },
-          "type":  { "type": "string", "enum": ["class", "property", "instance", "literal"] },
+          "type":  { "type": "string", "enum": ["class", "property", "union", "instance", "literal"] },
           "group": { "type": "string" }
         }
       }

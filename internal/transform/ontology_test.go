@@ -377,6 +377,11 @@ ex:name a owl:DatatypeProperty ;
 		t.Errorf("datatype property node Type = %q, want %q", n.Type, graph.NodeTypeProperty)
 	}
 
+	// Domain must link to the datatype property node.
+	if !hasLink(gm.Links, "http://example.org/dp#Person", "http://example.org/dp#name", "") {
+		t.Error("missing edge Person → name for datatype property")
+	}
+
 	// Validate graph consistency.
 	if err := gm.Validate(); err != nil {
 		t.Errorf("GraphModel.Validate() = %v", err)
@@ -630,6 +635,167 @@ ex:prop2 a owl:ObjectProperty ;
 	}
 	if count != 2 {
 		t.Errorf("expected 2 edges A → B, got %d", count)
+	}
+
+	if err := gm.Validate(); err != nil {
+		t.Errorf("GraphModel.Validate() = %v", err)
+	}
+}
+
+func TestBuildGraphModel_ObjectPropertiesSameLabelSameDomainRange(t *testing.T) {
+	// Object properties that share the same domain + range AND label must
+	// still be emitted as distinct edges (dedup by predicate IRI, not label).
+	const src = `
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix ex:   <http://example.org/duplabel#> .
+
+ex:A a owl:Class .
+ex:B a owl:Class .
+
+ex:prop1 a owl:ObjectProperty ;
+    rdfs:label "related to" ;
+    rdfs:domain ex:A ;
+    rdfs:range  ex:B .
+
+ex:prop2 a owl:ObjectProperty ;
+    rdfs:label "related to" ;
+    rdfs:domain ex:A ;
+    rdfs:range  ex:B .
+`
+	g := parseTurtle(t, src, "http://example.org/duplabel")
+	gm, err := transform.BuildGraphModel(g)
+	if err != nil {
+		t.Fatalf("BuildGraphModel: %v", err)
+	}
+
+	const (
+		iriA = "http://example.org/duplabel#A"
+		iriB = "http://example.org/duplabel#B"
+	)
+
+	count := 0
+	for _, l := range gm.Links {
+		if l.Source == iriA && l.Target == iriB && l.Label == "related to" {
+			count++
+		}
+	}
+	if count != 2 {
+		t.Errorf("expected 2 edges A → B with identical labels, got %d", count)
+	}
+
+	if err := gm.Validate(); err != nil {
+		t.Errorf("GraphModel.Validate() = %v", err)
+	}
+}
+
+func TestBuildGraphModel_ObjectPropertyUnionDomain(t *testing.T) {
+	// owl:unionOf domains should be represented as explicit union nodes.
+	const src = `
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix ex:   <http://example.org/union#> .
+
+ex:A a owl:Class .
+
+ex:relatedTo a owl:ObjectProperty ;
+    rdfs:label "related to" ;
+    rdfs:domain [ owl:unionOf ( ex:A ex:B ) ] ;
+    rdfs:range ex:C .
+`
+	g := parseTurtle(t, src, "http://example.org/union")
+	gm, err := transform.BuildGraphModel(g)
+	if err != nil {
+		t.Fatalf("BuildGraphModel: %v", err)
+	}
+
+	const (
+		iriA = "http://example.org/union#A"
+		iriB = "http://example.org/union#B"
+		iriC = "http://example.org/union#C"
+	)
+
+	// Implied classes from union domain/range must exist as nodes.
+	for _, iri := range []string{iriA, iriB, iriC} {
+		n := findNode(gm.Nodes, iri)
+		if n == nil {
+			t.Fatalf("expected node %q from domain/range", iri)
+		}
+		if n.Type != graph.NodeTypeClass {
+			t.Errorf("node %q Type = %q, want %q", iri, n.Type, graph.NodeTypeClass)
+		}
+	}
+
+	unionNodes := make([]graph.Node, 0)
+	for _, n := range gm.Nodes {
+		if n.Type == graph.NodeTypeUnion {
+			unionNodes = append(unionNodes, n)
+		}
+	}
+	if len(unionNodes) != 1 {
+		t.Fatalf("expected 1 union node, got %d", len(unionNodes))
+	}
+	unionID := unionNodes[0].ID
+
+	// Union node should link to its members via unionOf.
+	if !hasLink(gm.Links, unionID, iriA, "unionOf") {
+		t.Error("missing unionOf edge union → A")
+	}
+	if !hasLink(gm.Links, unionID, iriB, "unionOf") {
+		t.Error("missing unionOf edge union → B")
+	}
+
+	// Property edge should originate from the union node.
+	if !hasLink(gm.Links, unionID, iriC, "related to") {
+		t.Error("missing edge union → C (related to)")
+	}
+	if hasLink(gm.Links, iriA, iriC, "related to") || hasLink(gm.Links, iriB, iriC, "related to") {
+		t.Error("unexpected direct edges from union members to range")
+	}
+
+	if err := gm.Validate(); err != nil {
+		t.Errorf("GraphModel.Validate() = %v", err)
+	}
+}
+
+func TestBuildGraphModel_DatatypePropertyDomainImpliedClass(t *testing.T) {
+	// Datatype property domains should imply class nodes even without explicit
+	// owl:Class declarations; datatype ranges should not become nodes.
+	const src = `
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix ex:   <http://example.org/dt#> .
+
+ex:value a owl:DatatypeProperty ;
+    rdfs:label "value" ;
+    rdfs:domain ex:Thing ;
+    rdfs:range xsd:string .
+`
+	g := parseTurtle(t, src, "http://example.org/dt")
+	gm, err := transform.BuildGraphModel(g)
+	if err != nil {
+		t.Fatalf("BuildGraphModel: %v", err)
+	}
+
+	const (
+		iriThing = "http://example.org/dt#Thing"
+		iriXSD   = "http://www.w3.org/2001/XMLSchema#string"
+	)
+
+	n := findNode(gm.Nodes, iriThing)
+	if n == nil {
+		t.Fatalf("expected implied domain node %q", iriThing)
+	}
+	if n.Type != graph.NodeTypeClass {
+		t.Errorf("node %q Type = %q, want %q", iriThing, n.Type, graph.NodeTypeClass)
+	}
+
+	if findNode(gm.Nodes, iriXSD) != nil {
+		t.Errorf("datatype range %q should not become a node", iriXSD)
 	}
 
 	if err := gm.Validate(); err != nil {
