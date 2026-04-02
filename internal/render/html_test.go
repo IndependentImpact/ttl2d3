@@ -188,7 +188,7 @@ func TestRenderHTML_LegendPresent(t *testing.T) {
 	}
 	out := buf.String()
 
-	for _, want := range []string{"Class", "Union", "Property", "Instance", "Literal"} {
+	for _, want := range []string{"Class", "Union", "Property", "Instance", "Literal", "Origin", "Namespaces"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("legend missing entry %q", want)
 		}

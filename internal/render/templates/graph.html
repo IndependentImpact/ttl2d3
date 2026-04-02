@@ -142,6 +142,22 @@
     .legend-swatch.circle  { border-radius: 50%; }
     .legend-swatch.diamond { transform: rotate(45deg); width: 12px; height: 12px; }
     .legend-swatch.triangle { clip-path: polygon(50% 0%, 0% 100%, 100% 100%); }
+    .legend-swatch.outline { background: transparent; border: 2px solid; border-radius: 3px; }
+
+    #namespace-list {
+      margin-top: 0.25rem;
+      max-height: 10rem;
+      overflow: auto;
+      padding-right: 0.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .namespace-item { display: flex; align-items: baseline; gap: 0.35rem; }
+    .namespace-prefix { font-weight: 700; min-width: 3rem; color: #212529; }
+    .namespace-iri { font-size: 0.75rem; color: #495057; word-break: break-all; }
+    .namespace-count { font-size: 0.75rem; color: #6c757d; }
 
     /* ── Tooltip ──────────────────────────────────────────────────────────── */
     #tooltip {
@@ -208,6 +224,21 @@
         <span class="legend-swatch" style="background:#d62728;" aria-hidden="true"></span>
         <span>Literal</span>
       </div>
+      <h2>Origin</h2>
+      <div class="legend-item">
+        <span class="legend-swatch outline" style="border-color:#0b7285;" aria-hidden="true"></span>
+        <span>Local</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-swatch outline" style="border-color:#868e96;" aria-hidden="true"></span>
+        <span>Imported</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-swatch outline" style="border-color:#495057;" aria-hidden="true"></span>
+        <span>Internal</span>
+      </div>
+      <h2>Namespaces</h2>
+      <div id="namespace-list" aria-label="Namespace prefixes"></div>
     </nav>
   </div>
 
@@ -243,6 +274,18 @@
       union:    d3.symbolTriangle,
       instance: d3.symbolSquare,
       literal:  d3.symbolSquare,
+    };
+
+    const ORIGIN_COLOR = {
+      local:    '#0b7285',
+      imported: '#868e96',
+      internal: '#495057',
+    };
+
+    const ORIGIN_LABEL = {
+      local: 'Local',
+      imported: 'Imported',
+      internal: 'Internal',
     };
 
     const NODE_SIZE = 120; // d3.symbol size (area in square pixels)
@@ -282,6 +325,63 @@
     /* ── Data ───────────────────────────────────────────────────────────── */
     const nodes = (graphData.nodes || []).map((d) => Object.assign({}, d));
     const links = (graphData.links || []).map((d) => Object.assign({}, d));
+    const baseIRI = (graphData.metadata && graphData.metadata.baseIRI) || '';
+
+    function namespaceOf(iri) {
+      if (!iri) return '';
+      const hash = iri.lastIndexOf('#');
+      if (hash >= 0) return iri.slice(0, hash + 1);
+      const slash = iri.lastIndexOf('/');
+      if (slash >= 0) return iri.slice(0, slash + 1);
+      return '';
+    }
+
+    function originForNode(d) {
+      if (d.type === 'union') return 'internal';
+      if (baseIRI && d.id && d.id.startsWith(baseIRI)) return 'local';
+      return 'imported';
+    }
+
+    nodes.forEach((n) => {
+      n._origin = originForNode(n);
+      n._namespace = namespaceOf(n.id);
+    });
+
+    (function renderNamespaces() {
+      const list = document.getElementById('namespace-list');
+      if (!list) return;
+      const map = new Map();
+      nodes.forEach((n) => {
+        if (!n._namespace || n.type === 'union') return;
+        const key = n._namespace;
+        const entry = map.get(key) || { ns: n._namespace, prefix: n.group || '', count: 0 };
+        entry.count += 1;
+        map.set(key, entry);
+      });
+      const entries = Array.from(map.values()).sort((a, b) => a.ns.localeCompare(b.ns));
+      list.innerHTML = '';
+      entries.forEach((entry) => {
+        const item = document.createElement('div');
+        item.className = 'namespace-item';
+        if (entry.prefix) {
+          const prefix = document.createElement('span');
+          prefix.className = 'namespace-prefix';
+          prefix.textContent = entry.prefix + ':';
+          item.appendChild(prefix);
+        }
+        const iri = document.createElement('span');
+        iri.className = 'namespace-iri';
+        iri.textContent = entry.ns;
+        item.appendChild(iri);
+
+        const count = document.createElement('span');
+        count.className = 'namespace-count';
+        count.textContent = '(' + entry.count + ')';
+        item.appendChild(count);
+
+        list.appendChild(item);
+      });
+    }());
 
     /* ── Pre-compute parallel-edge curvature ────────────────────────────── */
     // Group links by directed (source, target) pair and assign each a
@@ -346,7 +446,7 @@
     nodeSel.append('path')
       .attr('d', (d) => symbolGen.type(TYPE_SYMBOL[d.type] || d3.symbolCircle)())
       .attr('fill',   (d) => TYPE_COLOR[d.type] || '#999999')
-      .attr('stroke', (d) => d3.color(TYPE_COLOR[d.type] || '#999999').darker(0.6));
+      .attr('stroke', (d) => ORIGIN_COLOR[d._origin] || d3.color(TYPE_COLOR[d.type] || '#999999').darker(0.6));
 
     nodeSel.append('text')
       .attr('class', 'node-label')
@@ -451,11 +551,14 @@
 
     nodeSel
       .on('mouseover', (event, d) => {
+        const originLabel = ORIGIN_LABEL[d._origin] || 'Imported';
         tooltipEl.innerHTML =
           '<p><dt>Label</dt><dd>' + escHtml(d.label || '') + '</dd></p>' +
           '<p><dt>Type</dt><dd>'  + escHtml(d.type  || '') + '</dd></p>' +
-          '<p><dt>IRI</dt><dd>'   + escHtml(d.id    || '') + '</dd></p>' +
-          (d.group ? '<p><dt>Group</dt><dd>' + escHtml(d.group) + '</dd></p>' : '');
+          '<p><dt>Origin</dt><dd>' + escHtml(originLabel) + '</dd></p>' +
+          (d._namespace ? '<p><dt>Namespace</dt><dd>' + escHtml(d._namespace) + '</dd></p>' : '') +
+          (d.group && d.type !== 'union' ? '<p><dt>Prefix</dt><dd>' + escHtml(d.group) + '</dd></p>' : '') +
+          '<p><dt>IRI</dt><dd>'   + escHtml(d.id    || '') + '</dd></p>';
         tooltipEl.classList.add('visible');
         moveTooltip(event);
       })
