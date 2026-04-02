@@ -9,7 +9,8 @@
 > force-directed graph visualisations.
 
 `ttl2d3` is a Go CLI tool that reads ontologies or concept schemes in common
-RDF formats (`.ttl`, `.owl`, `.jsonld`, `.rdf`) and produces either:
+RDF formats (`.ttl`, `.owl`, `.jsonld`, `.rdf`) – from a **local file, stdin,
+or an HTTP/HTTPS URL** – and produces either:
 
 * a **standalone D3 JSON object** ready to embed in any webpage, or
 * a **self-contained HTML page** with an interactive D3 force-directed graph
@@ -56,24 +57,27 @@ or move it onto your `PATH` (the file is already executable after `go build`).
 
 ### Flags
 
-| Flag                | Short | Default     | Description                                      |
-|---------------------|-------|-------------|--------------------------------------------------|
-| `--input`           | `-i`  | *(required)*| Input file path, or `-` for stdin                |
-| `--output`          | `-o`  | `html`      | Output format: `html` or `json`                  |
-| `--out`             | `-O`  | stdout      | Output file path                                 |
-| `--format`          | `-f`  | auto-detect | Input format: `turtle`, `rdfxml`, `jsonld`       |
-| `--title`           |       | ontology IRI| Title shown in HTML output                       |
-| `--link-distance`   |       | `80`        | D3 force link distance                           |
-| `--charge-strength` |       | `-300`      | D3 many-body charge strength                     |
-| `--collide-radius`  |       | `20`        | D3 collision-detection radius                    |
-| `--verbose`         | `-v`  | false       | Enable debug logging                             |
-| `--help`            | `-h`  | —           | Show help                                        |
+| Flag                | Short | Default     | Description                                               |
+|---------------------|-------|-------------|-----------------------------------------------------------|
+| `--input`           | `-i`  | *(required)*| Input file path, `-` for stdin, or an `http(s)://` URL   |
+| `--output`          | `-o`  | `html`      | Output format: `html` or `json`                          |
+| `--out`             | `-O`  | stdout      | Output file path                                         |
+| `--format`          | `-f`  | auto-detect | Input format: `turtle`, `rdfxml`, `jsonld`               |
+| `--title`           |       | ontology IRI| Title shown in HTML output                               |
+| `--link-distance`   |       | `80`        | D3 force link distance                                   |
+| `--charge-strength` |       | `-300`      | D3 many-body charge strength                             |
+| `--collide-radius`  |       | `20`        | D3 collision-detection radius                            |
+| `--verbose`         | `-v`  | false       | Enable debug logging                                     |
+| `--help`            | `-h`  | —           | Show help                                                |
 
 ### Examples
 
 ```bash
 # Generate a self-contained HTML diagram
 ./ttl2d3 convert --input my-ontology.ttl --out diagram.html
+
+# Fetch an ontology directly from a URL
+./ttl2d3 convert --input https://w3id.org/aiao --out aiao.html
 
 # Generate D3 graph JSON only
 ./ttl2d3 convert --input my-ontology.ttl --output json --out graph.json
@@ -94,6 +98,18 @@ cat my-ontology.ttl | ./ttl2d3 convert --input - --format turtle
 | `.ttl`              | Turtle   |
 | `.owl` / `.rdf`     | RDF/XML  |
 | `.jsonld` / `.json` | JSON-LD  |
+
+When `--input` is an HTTP/HTTPS URL the format is resolved from the `Content-Type`
+response header (using HTTP content negotiation), then from the URL path
+extension, and finally from byte-sniffing as a last resort.
+
+Supported `Content-Type` values:
+
+| MIME type                             | Format   |
+|---------------------------------------|----------|
+| `text/turtle`, `application/x-turtle` | Turtle   |
+| `application/rdf+xml`                 | RDF/XML  |
+| `application/ld+json`                 | JSON-LD  |
 
 ---
 
@@ -125,6 +141,9 @@ go test ./...
 
 # Test (unit + integration)
 go test -tags integration ./...
+
+# Test (network – requires outbound HTTPS, not run in CI)
+go test -tags network ./e2e/...
 
 # Check for known vulnerabilities
 govulncheck ./...

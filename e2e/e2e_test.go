@@ -6,6 +6,9 @@ package e2e
 
 import (
 	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -335,5 +338,58 @@ func TestE2E_ForceParams(t *testing.T) {
 	)
 	if err != nil {
 		t.Fatalf("ttl2d3 convert with force params: %v", err)
+	}
+}
+
+// TestE2E_ConvertFromURL verifies that a URL can be used as --input.
+// A local httptest server serves a Turtle file so no real network is needed.
+func TestE2E_ConvertFromURL(t *testing.T) {
+	ttlData, err := os.ReadFile(testdata("simple.ttl"))
+	if err != nil {
+		t.Fatalf("reading testdata: %v", err)
+	}
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/turtle")
+		fmt.Fprint(w, string(ttlData))
+	}))
+	defer srv.Close()
+
+	outPath := filepath.Join(t.TempDir(), "out.html")
+	stdout, stderr, err := runBinary(t,
+		"convert",
+		"--input", srv.URL+"/onto.ttl",
+		"--out", outPath,
+	)
+	if err != nil {
+		t.Fatalf("ttl2d3 convert from URL: %v\nstdout: %s\nstderr: %s", err, stdout, stderr)
+	}
+
+	data, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatalf("reading output: %v", err)
+	}
+	if !strings.Contains(string(data), "<!DOCTYPE html>") {
+		t.Error("HTML output missing <!DOCTYPE html>")
+	}
+}
+
+// TestE2E_ConvertFromURL_404 verifies that a 404 URL exits with a non-zero
+// exit code and a useful error message.
+func TestE2E_ConvertFromURL_404(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.NotFound(w, r)
+	}))
+	defer srv.Close()
+
+	_, stderr, err := runBinary(t,
+		"convert",
+		"--input", srv.URL+"/missing.ttl",
+	)
+	if err == nil {
+		t.Error("expected non-zero exit for 404 URL, got nil")
+	}
+	if !strings.Contains(stderr, "404") {
+		t.Errorf("stderr %q should mention 404", stderr)
 	}
 }

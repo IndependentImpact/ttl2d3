@@ -4,6 +4,8 @@ package main
 
 import (
 	"bytes"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -256,5 +258,98 @@ func TestRunConvert_InvalidInput(t *testing.T) {
 
 	if err := runConvert(cfg); err == nil {
 		t.Error("expected error for nonexistent input file, got nil")
+	}
+}
+
+func TestRunConvert_URLInput_HTML(t *testing.T) {
+	// Read the real test data to serve.
+	ttlData, err := os.ReadFile(testdataPath("simple.ttl"))
+	if err != nil {
+		t.Fatalf("reading testdata: %v", err)
+	}
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/turtle")
+		w.Write(ttlData) //nolint:errcheck
+	}))
+	defer srv.Close()
+
+	outPath := filepath.Join(t.TempDir(), "out.html")
+	cfg := config.Config{
+		Input:          srv.URL + "/onto.ttl",
+		Output:         config.OutputHTML,
+		Out:            outPath,
+		LinkDistance:   80,
+		ChargeStrength: -300,
+		CollideRadius:  20,
+	}
+
+	if err := runConvert(cfg); err != nil {
+		t.Fatalf("runConvert() error = %v", err)
+	}
+
+	data, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatalf("reading output: %v", err)
+	}
+	if !strings.Contains(string(data), "<!DOCTYPE html>") {
+		t.Error("HTML output missing <!DOCTYPE html>")
+	}
+}
+
+func TestRunConvert_URLInput_JSON(t *testing.T) {
+	ttlData, err := os.ReadFile(testdataPath("simple.ttl"))
+	if err != nil {
+		t.Fatalf("reading testdata: %v", err)
+	}
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/turtle")
+		w.Write(ttlData) //nolint:errcheck
+	}))
+	defer srv.Close()
+
+	outPath := filepath.Join(t.TempDir(), "out.json")
+	cfg := config.Config{
+		Input:          srv.URL + "/onto",
+		Output:         config.OutputJSON,
+		Out:            outPath,
+		LinkDistance:   80,
+		ChargeStrength: -300,
+		CollideRadius:  20,
+	}
+
+	if err := runConvert(cfg); err != nil {
+		t.Fatalf("runConvert() error = %v", err)
+	}
+
+	data, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatalf("reading output: %v", err)
+	}
+	content := string(data)
+	for _, want := range []string{`"nodes"`, `"links"`, `"metadata"`} {
+		if !strings.Contains(content, want) {
+			t.Errorf("JSON output missing key %q", want)
+		}
+	}
+}
+
+func TestRunConvert_URLInput_404(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.NotFound(w, r)
+	}))
+	defer srv.Close()
+
+	cfg := config.Config{
+		Input:          srv.URL + "/missing.ttl",
+		Output:         config.OutputHTML,
+		LinkDistance:   80,
+		ChargeStrength: -300,
+		CollideRadius:  20,
+	}
+
+	if err := runConvert(cfg); err == nil {
+		t.Error("expected error for 404 URL, got nil")
 	}
 }
