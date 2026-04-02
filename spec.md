@@ -113,6 +113,7 @@ The output graph JSON follows the D3 force-directed graph convention:
 | OH-07 | Include a visible legend. |
 | OH-08 | SVG is responsive (percentage-based width, viewport-relative height). |
 | OH-09 | Provide a search/filter input box to highlight nodes by label substring. |
+| OH-10 | Show origin (local vs imported) and namespace legend derived from node IRIs. |
 
 ### 3.5 CLI Interface
 ```

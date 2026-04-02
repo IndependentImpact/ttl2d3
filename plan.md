@@ -2,7 +2,7 @@
 
 **Version:** 0.1.0-draft  
 **Status:** Active  
-**Last updated:** 2026-03-26 (Phase 15 complete)
+**Last updated:** 2026-03-26 (Phase 16 complete)
 
 Progress legend: ✅ Done · 🔄 In progress · ⬜ Not started
 
@@ -207,6 +207,13 @@ Progress legend: ✅ Done · 🔄 In progress · ⬜ Not started
 ## Phase 15 – Union Nodes ✅
 
 - [x] 15.1 Represent owl:unionOf class expressions as explicit union nodes
+
+---
+
+## Phase 16 – Origin Legend ✅
+
+- [x] 16.1 Distinguish local vs imported nodes in HTML output
+- [x] 16.2 Render namespace legend derived from node IRIs
 
 ---
 
