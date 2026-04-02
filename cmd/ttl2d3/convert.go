@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -9,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/IndependentImpact/ttl2d3/internal/config"
+	"github.com/IndependentImpact/ttl2d3/internal/fetcher"
 	"github.com/IndependentImpact/ttl2d3/internal/parser"
 	"github.com/IndependentImpact/ttl2d3/internal/render"
 	"github.com/IndependentImpact/ttl2d3/internal/transform"
@@ -24,11 +26,15 @@ func newConvertCmd() *cobra.Command {
 		Long: `Convert an RDF/OWL/Turtle/JSON-LD ontology or concept scheme into
 an interactive D3.js force-directed graph visualisation.
 
-The input format is auto-detected from the file extension unless overridden
-with --format. The default output format is self-contained HTML; use
---output json for a standalone D3 JSON object.`,
-		Example: `  # Produce a self-contained HTML visualisation
+The input may be a local file path, "-" for stdin, or an HTTP/HTTPS URL.
+The input format is auto-detected from the file extension or HTTP Content-Type
+header unless overridden with --format. The default output format is
+self-contained HTML; use --output json for a standalone D3 JSON object.`,
+		Example: `  # Produce a self-contained HTML visualisation from a local file
   ttl2d3 convert --input ontology.ttl --out diagram.html
+
+  # Fetch an ontology from a URL and produce HTML
+  ttl2d3 convert --input https://w3id.org/aiao --out aiao.html
 
   # Produce a D3 JSON file
   ttl2d3 convert --input ontology.ttl --output json --out graph.json
@@ -80,7 +86,21 @@ func runConvert(cfg config.Config) (retErr error) {
 		filename string
 	)
 
-	if cfg.Input == "-" {
+	if fetcher.IsURL(cfg.Input) {
+		rc, detectedFormat, err := fetcher.Fetch(context.Background(), cfg.Input, cfg.Format)
+		if err != nil {
+			return fmt.Errorf("convert: fetching URL: %w", err)
+		}
+		defer rc.Close() //nolint:errcheck // read-only; close errors are not actionable
+		r = rc
+		filename = cfg.Input
+		// Only update format when auto-detect is still active so that an
+		// explicit --format flag is never overridden.
+		if cfg.Format == config.InputAuto {
+			cfg.Format = detectedFormat
+		}
+		slog.Debug("fetched URL", "url", cfg.Input, "detectedFormat", detectedFormat)
+	} else if cfg.Input == "-" {
 		r = os.Stdin
 		filename = "-"
 		slog.Debug("reading from stdin")

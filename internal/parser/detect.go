@@ -4,11 +4,41 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"mime"
 	"path/filepath"
 	"strings"
 
 	"github.com/IndependentImpact/ttl2d3/internal/config"
 )
+
+// FormatFromContentType returns the [config.InputFormat] best matching the
+// supplied HTTP Content-Type header value.  MIME type parameters such as
+// "charset=utf-8" are stripped before matching.  Returns [config.InputAuto]
+// when the MIME type does not correspond to a known RDF serialisation.
+func FormatFromContentType(contentType string) config.InputFormat {
+	if contentType == "" {
+		return config.InputAuto
+	}
+	mediaType, _, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		// Fall back to simple trimming when the header is malformed.
+		if idx := strings.IndexByte(contentType, ';'); idx >= 0 {
+			mediaType = strings.TrimSpace(contentType[:idx])
+		} else {
+			mediaType = strings.TrimSpace(contentType)
+		}
+	}
+	switch strings.ToLower(mediaType) {
+	case "text/turtle", "application/x-turtle", "text/n3":
+		return config.InputTurtle
+	case "application/rdf+xml", "application/xml", "text/xml":
+		return config.InputRDFXML
+	case "application/ld+json", "application/json":
+		return config.InputJSONLD
+	default:
+		return config.InputAuto
+	}
+}
 
 // sniffSize is the number of bytes read from the stream for content sniffing.
 const sniffSize = 512

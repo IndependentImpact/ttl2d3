@@ -323,3 +323,47 @@ func TestParseTestdata(t *testing.T) {
 		})
 	}
 }
+
+// ---------------------------------------------------------------------------
+// FormatFromContentType tests
+// ---------------------------------------------------------------------------
+
+func TestFormatFromContentType(t *testing.T) {
+tests := []struct {
+name        string
+contentType string
+want        config.InputFormat
+}{
+// Turtle MIME types
+{name: "text/turtle", contentType: "text/turtle", want: config.InputTurtle},
+{name: "text/turtle with charset", contentType: "text/turtle; charset=utf-8", want: config.InputTurtle},
+{name: "application/x-turtle", contentType: "application/x-turtle", want: config.InputTurtle},
+{name: "text/n3", contentType: "text/n3", want: config.InputTurtle},
+// RDF/XML MIME types
+{name: "application/rdf+xml", contentType: "application/rdf+xml", want: config.InputRDFXML},
+{name: "application/rdf+xml with charset", contentType: "application/rdf+xml; charset=UTF-8", want: config.InputRDFXML},
+{name: "application/xml", contentType: "application/xml", want: config.InputRDFXML},
+{name: "text/xml", contentType: "text/xml", want: config.InputRDFXML},
+// JSON-LD MIME types
+{name: "application/ld+json", contentType: "application/ld+json", want: config.InputJSONLD},
+{name: "application/ld+json with charset", contentType: "application/ld+json; charset=utf-8", want: config.InputJSONLD},
+{name: "application/json", contentType: "application/json", want: config.InputJSONLD},
+// Unknown / unrelated MIME types → InputAuto
+{name: "text/html", contentType: "text/html", want: config.InputAuto},
+{name: "text/plain", contentType: "text/plain", want: config.InputAuto},
+{name: "application/octet-stream", contentType: "application/octet-stream", want: config.InputAuto},
+{name: "empty string", contentType: "", want: config.InputAuto},
+// Case insensitivity
+{name: "TEXT/TURTLE uppercase", contentType: "TEXT/TURTLE", want: config.InputTurtle},
+{name: "Application/RDF+XML mixed case", contentType: "Application/RDF+XML", want: config.InputRDFXML},
+}
+
+for _, tc := range tests {
+t.Run(tc.name, func(t *testing.T) {
+got := parser.FormatFromContentType(tc.contentType)
+if got != tc.want {
+t.Errorf("FormatFromContentType(%q) = %q, want %q", tc.contentType, got, tc.want)
+}
+})
+}
+}
