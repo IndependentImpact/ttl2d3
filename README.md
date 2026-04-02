@@ -169,4 +169,5 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for detailed contribution guidelines.
 
 ## License
 
-TBD
+Copyright 2026 Nova Institute NPC. Licensed under the
+[Apache License, Version 2.0](LICENSE).
