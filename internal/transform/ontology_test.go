@@ -1141,3 +1141,176 @@ if gm.Metadata.BaseIRI != "http://example.org/decisions" {
 t.Errorf("Metadata.BaseIRI = %q, want %q", gm.Metadata.BaseIRI, "http://example.org/decisions")
 }
 }
+
+// ---------------------------------------------------------------------------
+// BuildGraphModel – custom object properties from SKOS concept scheme members
+// ---------------------------------------------------------------------------
+
+// TestBuildGraphModel_CustomObjectPropertiesFromSKOSMember verifies the fix
+// for the issue "Expand on display of skos Concept scheme": resources that are
+// part of a concept scheme (via skos:inScheme) and that use custom/unrecognised
+// object properties to link to other concepts must have both the target
+// concepts and the property links included in the graph.
+//
+// Example pattern from the issue:
+//
+//map:DecisionOutcomeMappingApprove a indimp:DecisionOutcomeMapping ;
+//  skos:inScheme map:DecisionOutcomeMappingScheme ;
+//  indimp:decision concept:Approve ;
+//  indimp:mapsOutcome concept:DocOutcomeApproved .
+func TestBuildGraphModel_CustomObjectPropertiesFromSKOSMember(t *testing.T) {
+const src = `
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix map:     <http://example.org/map#> .
+@prefix indimp:  <http://example.org/indimp#> .
+@prefix concept: <http://example.org/concept#> .
+
+map:DecisionOutcomeMappingScheme a skos:ConceptScheme ;
+    rdfs:label "Decision Outcome Mapping Scheme" .
+
+map:DecisionOutcomeMappingApprove a indimp:DecisionOutcomeMapping ;
+    skos:inScheme map:DecisionOutcomeMappingScheme ;
+    indimp:decision concept:Approve ;
+    indimp:mapsOutcome concept:DocOutcomeApproved .
+
+concept:Approve a skos:Concept ;
+    skos:prefLabel "Approve"@en .
+
+concept:DocOutcomeApproved a skos:Concept ;
+    skos:prefLabel "Document Outcome Approved"@en .
+`
+g := parseTurtle(t, src, "http://example.org/map")
+gm, err := transform.BuildGraphModel(g)
+if err != nil {
+t.Fatalf("BuildGraphModel: %v", err)
+}
+
+const (
+iriScheme    = "http://example.org/map#DecisionOutcomeMappingScheme"
+iriMapping   = "http://example.org/map#DecisionOutcomeMappingApprove"
+iriApprove   = "http://example.org/concept#Approve"
+iriDocOutcome = "http://example.org/concept#DocOutcomeApproved"
+iriDecision   = "http://example.org/indimp#decision"
+iriMaps       = "http://example.org/indimp#mapsOutcome"
+)
+
+// All four resources must appear as nodes.
+for _, id := range []string{iriScheme, iriMapping, iriApprove, iriDocOutcome} {
+if findNode(gm.Nodes, id) == nil {
+t.Errorf("node %q not found", id)
+}
+}
+
+// The skos:inScheme link must still be present.
+if !hasLink(gm.Links, iriMapping, iriScheme, "inScheme") {
+t.Errorf("missing inScheme link Mapping → Scheme")
+}
+
+// Custom property links must be present.
+if !hasLink(gm.Links, iriMapping, iriApprove, "decision") {
+t.Errorf("missing indimp:decision link Mapping → Approve")
+}
+if !hasLink(gm.Links, iriMapping, iriDocOutcome, "mapsOutcome") {
+t.Errorf("missing indimp:mapsOutcome link Mapping → DocOutcomeApproved")
+}
+
+if err := gm.Validate(); err != nil {
+t.Errorf("GraphModel.Validate() = %v", err)
+}
+}
+
+// TestBuildGraphModel_CustomObjectPropertiesImplyTargetNodes verifies that
+// even when the target concepts of custom object properties are NOT explicitly
+// typed anywhere in the input, they are still added as implied nodes.
+func TestBuildGraphModel_CustomObjectPropertiesImplyTargetNodes(t *testing.T) {
+const src = `
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix map:     <http://example.org/map#> .
+@prefix indimp:  <http://example.org/indimp#> .
+@prefix concept: <http://example.org/concept#> .
+
+map:Scheme a skos:ConceptScheme .
+
+map:MappingA a indimp:Mapping ;
+    skos:inScheme map:Scheme ;
+    indimp:decision concept:Accept .
+`
+g := parseTurtle(t, src, "http://example.org/map")
+gm, err := transform.BuildGraphModel(g)
+if err != nil {
+t.Fatalf("BuildGraphModel: %v", err)
+}
+
+const (
+iriScheme   = "http://example.org/map#Scheme"
+iriMappingA = "http://example.org/map#MappingA"
+iriAccept   = "http://example.org/concept#Accept"
+)
+
+// concept:Accept is never explicitly typed but must be implied as a node.
+for _, id := range []string{iriScheme, iriMappingA, iriAccept} {
+if findNode(gm.Nodes, id) == nil {
+t.Errorf("node %q not found", id)
+}
+}
+
+if !hasLink(gm.Links, iriMappingA, iriScheme, "inScheme") {
+t.Errorf("missing inScheme link")
+}
+if !hasLink(gm.Links, iriMappingA, iriAccept, "decision") {
+t.Errorf("missing indimp:decision link MappingA → Accept")
+}
+
+if err := gm.Validate(); err != nil {
+t.Errorf("GraphModel.Validate() = %v", err)
+}
+}
+
+// TestBuildGraphModel_CustomTypedInstanceCustomProperties verifies that a
+// resource typed with an unrecognised class (not owl:Class, skos:Concept, etc.)
+// appears as a NodeTypeInstance and its custom IRI-valued properties become
+// graph edges.
+func TestBuildGraphModel_CustomTypedInstanceCustomProperties(t *testing.T) {
+const src = `
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix ex:      <http://example.org/ex#> .
+
+ex:MyClass a ex:CustomClass ;
+    ex:relatesTo ex:OtherClass .
+
+ex:OtherClass a skos:Concept ;
+    skos:prefLabel "Other"@en .
+`
+g := parseTurtle(t, src, "http://example.org/ex")
+gm, err := transform.BuildGraphModel(g)
+if err != nil {
+t.Fatalf("BuildGraphModel: %v", err)
+}
+
+const (
+iriMyClass    = "http://example.org/ex#MyClass"
+iriOtherClass = "http://example.org/ex#OtherClass"
+)
+
+n := findNode(gm.Nodes, iriMyClass)
+if n == nil {
+t.Fatalf("node %q not found", iriMyClass)
+}
+if n.Type != graph.NodeTypeInstance {
+t.Errorf("node %q Type = %q, want %q", iriMyClass, n.Type, graph.NodeTypeInstance)
+}
+
+if findNode(gm.Nodes, iriOtherClass) == nil {
+t.Errorf("node %q not found", iriOtherClass)
+}
+
+if !hasLink(gm.Links, iriMyClass, iriOtherClass, "relatesTo") {
+t.Errorf("missing ex:relatesTo link MyClass → OtherClass")
+}
+
+if err := gm.Validate(); err != nil {
+t.Errorf("GraphModel.Validate() = %v", err)
+}
+}

@@ -59,6 +59,14 @@ type labelEntry struct {
 	lang     string // BCP-47 language tag, empty = plain literal
 }
 
+// genericObjTriple records a non-builtin IRI→IRI triple (subject, predicate,
+// object) collected during Pass 1.  Triples whose subject is a known node are
+// used to expand the graph: the object is promoted to an implied node and a
+// labelled link is emitted between the two endpoints.
+type genericObjTriple struct {
+	subj, pred, obj string
+}
+
 // BuildGraphModel converts an RDF triple store produced by one of the parsers
 // into a [graph.GraphModel] suitable for rendering.
 //
@@ -105,6 +113,11 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 	// never explicitly typed still appear as nodes.  A map is used to avoid
 	// redundant ensureClass calls when the same IRI appears in multiple triples.
 	skosImplied := make(map[string]struct{})
+
+	// genericObjTriples collects all non-builtin IRI→IRI triples encountered in
+	// Pass 1.  After the main loop, triples whose subject is a known node are
+	// used to expand the graph: see the expansion step below.
+	genericObjTriples := make([]genericObjTriple, 0)
 
 	// domainOf maps property IRI → slice of domain class IRIs.
 	domainOf := make(map[string][]string)
@@ -189,6 +202,15 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 				nodeTypes[subjIRI] = graph.NodeTypeProperty
 			case iriOWLNamedIndividual:
 				nodeTypes[subjIRI] = graph.NodeTypeInstance
+			default:
+				// Resources typed with a class URI that is not owl:Class,
+				// skos:Concept, owl:ObjectProperty, owl:DatatypeProperty,
+				// owl:AnnotationProperty, or owl:NamedIndividual are treated as
+				// named individuals so that they appear as nodes and their
+				// outgoing custom properties can be visualised.
+				if _, exists := nodeTypes[subjIRI]; !exists {
+					nodeTypes[subjIRI] = graph.NodeTypeInstance
+				}
 			}
 
 		case iriRDFSLabel:
@@ -263,6 +285,19 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 			if objIRI := termIRI(t.Object); objIRI != "" {
 				skosImplied[objIRI] = struct{}{}
 			}
+		default:
+			// Collect non-builtin IRI→IRI triples for later graph expansion.
+			// All qualifying triples are stored here regardless of whether the
+			// subject is currently a known node; the filtering step after the
+			// main loop determines which subjects are known and promotes their
+			// object IRIs to implied nodes.
+			if objIRI := termIRI(t.Object); objIRI != "" {
+				genericObjTriples = append(genericObjTriples, genericObjTriple{
+					subj: subjIRI,
+					pred: predIRI,
+					obj:  objIRI,
+				})
+			}
 		}
 	}
 
@@ -319,6 +354,18 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 	// appear as nodes in the graph.
 	for iri := range skosImplied {
 		ensureClass(iri)
+	}
+
+	// Expand the graph from known nodes via non-builtin object triples.
+	// For every generic IRI→IRI triple whose subject is already a known node
+	// (either explicitly typed or SKOS-implied), add the object IRI as an
+	// implied node so that it will appear in the visualisation.
+	for _, gt := range genericObjTriples {
+		_, inNodeTypes := nodeTypes[gt.subj]
+		_, inSkosImplied := skosImplied[gt.subj]
+		if inNodeTypes || inSkosImplied {
+			ensureClass(gt.obj)
+		}
 	}
 
 	unionNodeIDs := make(map[string]string, len(unionBlankNodes))
@@ -542,6 +589,20 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 			for _, rng := range ranges {
 				addLink(dom, rng, propLabel, propIRI)
 			}
+		}
+	}
+
+	// Emit links for non-builtin IRI→IRI triples where both endpoints are
+	// nodes.  This covers custom object properties that link named individuals
+	// or concept-scheme members to other resources.  The addLink helper
+	// deduplicates by (src, tgt, predIRI) so no duplicate edges are emitted
+	// even if a triple was already handled by the switch above.
+	for _, gt := range genericObjTriples {
+		_, srcOK := nodeSet[gt.subj]
+		_, tgtOK := nodeSet[gt.obj]
+		if srcOK && tgtOK {
+			lbl := resolveLabel(gt.pred, labels)
+			addLink(gt.subj, gt.obj, lbl, gt.pred)
 		}
 	}
 
