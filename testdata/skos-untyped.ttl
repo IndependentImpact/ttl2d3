@@ -1,0 +1,36 @@
+# SKOS ConceptScheme where individual concepts are NOT explicitly typed as
+# skos:Concept.  This tests the fix for the issue where only the scheme node
+# was rendered; concepts implied by skos:broader / skos:hasTopConcept /
+# skos:topConceptOf / skos:related / skos:inScheme should also appear.
+
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos:   <http://www.w3.org/2004/02/skos/core#> .
+@prefix concept: <https://independentimpact.org/ns/concepts#> .
+
+concept:ReviewerDecisionScheme
+    a skos:ConceptScheme ;
+    rdfs:label "Reviewer decision to outcome mapping" ;
+    skos:hasTopConcept concept:Accept ;
+    skos:hasTopConcept concept:Reject .
+
+concept:Accept
+    skos:prefLabel "Accept"@en ;
+    skos:topConceptOf concept:ReviewerDecisionScheme .
+
+concept:Reject
+    skos:prefLabel "Reject"@en ;
+    skos:topConceptOf concept:ReviewerDecisionScheme .
+
+concept:MinorRevision
+    skos:prefLabel "Minor revision"@en ;
+    skos:broader concept:Accept .
+
+concept:MajorRevision
+    skos:prefLabel "Major revision"@en ;
+    skos:broader concept:Reject .
+
+concept:Desk
+    skos:prefLabel "Desk reject"@en ;
+    skos:broader concept:Reject ;
+    skos:related concept:MajorRevision .
