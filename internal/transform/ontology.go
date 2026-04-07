@@ -94,6 +94,18 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 	// ontologyIRI is the IRI of the owl:Ontology declaration (if present).
 	var ontologyIRI string
 
+	// conceptSchemeIRI is the IRI of the first skos:ConceptScheme declaration
+	// (used as metadata base IRI / title fallback when no owl:Ontology exists).
+	var conceptSchemeIRI string
+
+	// skosImplied holds IRIs that are implied to be skos:Concept nodes because
+	// they appear as subject or object of a SKOS semantic relation (broader,
+	// narrower, related, inScheme, topConceptOf, hasTopConcept).  These are
+	// processed after the main loop by ensureClass so that concepts that are
+	// never explicitly typed still appear as nodes.  A map is used to avoid
+	// redundant ensureClass calls when the same IRI appears in multiple triples.
+	skosImplied := make(map[string]struct{})
+
 	// domainOf maps property IRI → slice of domain class IRIs.
 	domainOf := make(map[string][]string)
 
@@ -156,7 +168,12 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 			switch objIRI {
 			case iriOWLOntology:
 				ontologyIRI = subjIRI
-			case iriOWLClass, iriSKOSConcept, iriSKOSConceptScheme:
+			case iriSKOSConceptScheme:
+				nodeTypes[subjIRI] = graph.NodeTypeClass
+				if conceptSchemeIRI == "" {
+					conceptSchemeIRI = subjIRI
+				}
+			case iriOWLClass, iriSKOSConcept:
 				nodeTypes[subjIRI] = graph.NodeTypeClass
 			case iriOWLObjectProperty:
 				// Object properties become edges; record separately.
@@ -229,6 +246,23 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 			if t.Object.Kind == parser.TermLiteral && metaStrings[iriDCDescription] == "" {
 				metaStrings[iriDCDescription] = t.Object.Value
 			}
+
+		// SKOS semantic relations: record subject/object as implied skos:Concept
+		// nodes so that concepts that are never explicitly typed as skos:Concept
+		// still appear in the graph.
+		case iriSKOSBroader, iriSKOSNarrower, iriSKOSRelated:
+			if objIRI := termIRI(t.Object); objIRI != "" {
+				skosImplied[subjIRI] = struct{}{}
+				skosImplied[objIRI] = struct{}{}
+			}
+		case iriSKOSInScheme, iriSKOSTopConceptOf:
+			if subjIRI != "" {
+				skosImplied[subjIRI] = struct{}{}
+			}
+		case iriSKOSHasTopConcept:
+			if objIRI := termIRI(t.Object); objIRI != "" {
+				skosImplied[objIRI] = struct{}{}
+			}
 		}
 	}
 
@@ -277,6 +311,14 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 		for _, iri := range getUnionMembers(blankID) {
 			ensureClass(iri)
 		}
+	}
+
+	// Implied concept nodes from SKOS semantic relations.  Concepts referenced
+	// by broader/narrower/related/inScheme/topConceptOf/hasTopConcept that were
+	// never explicitly typed as skos:Concept are added here so they still
+	// appear as nodes in the graph.
+	for iri := range skosImplied {
+		ensureClass(iri)
 	}
 
 	unionNodeIDs := make(map[string]string, len(unionBlankNodes))
@@ -506,7 +548,7 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 	// -----------------------------------------------------------------------
 	// Build Metadata.
 	// -----------------------------------------------------------------------
-	meta := buildMetadata(ontologyIRI, g.BaseIRI, labels, metaStrings)
+	meta := buildMetadata(ontologyIRI, conceptSchemeIRI, g.BaseIRI, labels, metaStrings)
 
 	gm := graph.NewGraphModel(nodes, links, meta)
 	return &gm, nil
@@ -622,19 +664,29 @@ func isXMLSchemaDatatype(iri string) bool {
 }
 
 // buildMetadata assembles the Metadata struct from collected information.
-func buildMetadata(ontologyIRI, baseIRI string, labels map[string]string, metaStrings map[string]string) graph.Metadata {
-	// Title: prefer dc:title, then rdfs:label of the ontology IRI, then empty.
+// conceptSchemeIRI is the IRI of the first skos:ConceptScheme declaration, used
+// as a fallback title source and base IRI when no owl:Ontology is present.
+func buildMetadata(ontologyIRI, conceptSchemeIRI, baseIRI string, labels map[string]string, metaStrings map[string]string) graph.Metadata {
+	// Title priority:
+	//  1. dc:title / dcterms:title
+	//  2. rdfs:label of the owl:Ontology subject
+	//  3. rdfs:label / skos:prefLabel of the skos:ConceptScheme subject
 	title := metaStrings[iriDCTitle]
 	if title == "" && ontologyIRI != "" {
 		title = labels[ontologyIRI]
+	}
+	if title == "" && conceptSchemeIRI != "" {
+		title = labels[conceptSchemeIRI]
 	}
 
 	description := metaStrings[iriDCDescription]
 	version := metaStrings[iriOWLVersionInfo]
 
-	// BaseIRI: prefer the explicit owl:Ontology subject, then the parser's
-	// base IRI.
+	// BaseIRI priority: owl:Ontology IRI → skos:ConceptScheme IRI → parser base IRI.
 	effectiveBaseIRI := ontologyIRI
+	if effectiveBaseIRI == "" {
+		effectiveBaseIRI = conceptSchemeIRI
+	}
 	if effectiveBaseIRI == "" {
 		effectiveBaseIRI = baseIRI
 	}
