@@ -164,28 +164,28 @@ ttl2d3 version
 └────────────────┬───────────────────────────────────────────────┘
                  │
          ┌───────▼────────┐
-         │   config/       │  flags, defaults, validation
+         │   config/      │  flags, defaults, validation
          └───────┬────────┘
                  │
          ┌───────▼────────┐
-         │   parser/       │  format detection + parsing
-         │  ┌────────────┐ │  → internal triple store
-         │  │  turtle     │ │
-         │  │  rdfxml     │ │
-         │  │  jsonld     │ │
-         │  └────────────┘ │
+         │   parser/      │  format detection + parsing
+         │  ┌────────────┐│  → internal triple store
+         │  │  turtle    ││
+         │  │  rdfxml    ││
+         │  │  jsonld    ││
+         │  └────────────┘│
          └───────┬────────┘
                  │
          ┌───────▼────────┐
-         │  transform/     │  triples → GraphModel
+         │  transform/    │  triples → GraphModel
          └───────┬────────┘
                  │
          ┌───────▼────────┐
-         │   render/       │  GraphModel → JSON / HTML
-         │  ┌────────────┐ │
-         │  │  json.go   │ │
-         │  │  html.go   │ │
-         │  └────────────┘ │
+         │   render/      │  GraphModel → JSON / HTML
+         │  ┌────────────┐│
+         │  │  json.go   ││
+         │  │  html.go   ││
+         │  └────────────┘│
          └────────────────┘
 ```
 
