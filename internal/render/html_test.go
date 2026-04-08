@@ -307,3 +307,255 @@ func TestRenderHTML_ParallelEdgesUsePath(t *testing.T) {
 		t.Error("template must include curvature pre-computation for parallel edges")
 	}
 }
+
+// ---------------------------------------------------------------------------
+// RenderHTML – layered layout
+// ---------------------------------------------------------------------------
+
+func TestRenderHTML_Layered_ContainsStructuralElements(t *testing.T) {
+	gm := graph.NewGraphModel(nil, nil, graph.Metadata{Title: "Layered Test"})
+	var buf bytes.Buffer
+	opts := render.HTMLOptions{Layout: render.LayoutLayered}
+	if err := render.RenderHTML(&gm, opts, &buf); err != nil {
+		t.Fatalf("RenderHTML layered: %v", err)
+	}
+	out := buf.String()
+
+	for _, want := range []string{
+		`<!DOCTYPE html>`,
+		`<title>Layered Test</title>`,
+		`<svg`,
+		`id="graph"`,
+		`id="legend"`,
+		`id="search"`,
+		`id="toolbar"`,
+		`id="tooltip"`,
+		`https://cdn.jsdelivr.net/npm/d3@7`,
+		`layout-badge`,
+		`layered`,
+		// Back-edge detection must be present.
+		`_isBackEdge`,
+		// Rank assignment must be present.
+		`rank`,
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("layered output missing %q", want)
+		}
+	}
+}
+
+func TestRenderHTML_Layered_NoForceSimulation(t *testing.T) {
+	gm := graph.NewGraphModel(nil, nil, graph.Metadata{})
+	var buf bytes.Buffer
+	opts := render.HTMLOptions{Layout: render.LayoutLayered}
+	if err := render.RenderHTML(&gm, opts, &buf); err != nil {
+		t.Fatalf("RenderHTML layered: %v", err)
+	}
+	out := buf.String()
+
+	// Layered layout must not use D3 force simulation.
+	if strings.Contains(out, `forceSimulation`) {
+		t.Error("layered layout must not contain forceSimulation")
+	}
+}
+
+func TestRenderHTML_Layered_BackEdgeDetection(t *testing.T) {
+	// A graph with a cycle: A → B → C → A
+	nodes := []graph.Node{
+		graph.NewNode("https://example.org/A", "A", graph.NodeTypeClass, "ex"),
+		graph.NewNode("https://example.org/B", "B", graph.NodeTypeClass, "ex"),
+		graph.NewNode("https://example.org/C", "C", graph.NodeTypeClass, "ex"),
+	}
+	links := []graph.Link{
+		graph.NewLink("https://example.org/A", "https://example.org/B", "next"),
+		graph.NewLink("https://example.org/B", "https://example.org/C", "next"),
+		graph.NewLink("https://example.org/C", "https://example.org/A", "loop"), // back-edge
+	}
+	gm := graph.NewGraphModel(nodes, links, graph.Metadata{})
+	var buf bytes.Buffer
+	opts := render.HTMLOptions{Layout: render.LayoutLayered}
+	if err := render.RenderHTML(&gm, opts, &buf); err != nil {
+		t.Fatalf("RenderHTML layered: %v", err)
+	}
+	out := buf.String()
+
+	// Back-edge CSS class and separate arrowhead must appear.
+	if !strings.Contains(out, `back-edge`) {
+		t.Error("layered output must reference back-edge CSS class")
+	}
+	if !strings.Contains(out, `arrowhead-back`) {
+		t.Error("layered output must reference arrowhead-back marker for back edges")
+	}
+}
+
+func TestRenderHTML_Layered_DeterministicOutput(t *testing.T) {
+	nodes := []graph.Node{
+		graph.NewNode("https://example.org/A", "A", graph.NodeTypeClass, "ex"),
+		graph.NewNode("https://example.org/B", "B", graph.NodeTypeClass, "ex"),
+	}
+	links := []graph.Link{
+		graph.NewLink("https://example.org/A", "https://example.org/B", "next"),
+	}
+	gm := graph.NewGraphModel(nodes, links, graph.Metadata{})
+	opts := render.HTMLOptions{Layout: render.LayoutLayered}
+
+	var buf1, buf2 bytes.Buffer
+	if err := render.RenderHTML(&gm, opts, &buf1); err != nil {
+		t.Fatalf("RenderHTML layered (run 1): %v", err)
+	}
+	if err := render.RenderHTML(&gm, opts, &buf2); err != nil {
+		t.Fatalf("RenderHTML layered (run 2): %v", err)
+	}
+	if buf1.String() != buf2.String() {
+		t.Error("layered layout output is not deterministic across runs")
+	}
+}
+
+func TestRenderHTML_Layered_LayoutDirection_TB(t *testing.T) {
+	gm := graph.NewGraphModel(nil, nil, graph.Metadata{})
+	var buf bytes.Buffer
+	opts := render.HTMLOptions{
+		Layout:          render.LayoutLayered,
+		LayoutDirection: render.LayoutDirectionTB,
+	}
+	if err := render.RenderHTML(&gm, opts, &buf); err != nil {
+		t.Fatalf("RenderHTML layered tb: %v", err)
+	}
+	out := buf.String()
+	if !strings.Contains(out, `'tb'`) {
+		t.Error("layered tb output must embed direction 'tb'")
+	}
+}
+
+func TestRenderHTML_Layered_CustomSeparations(t *testing.T) {
+	gm := graph.NewGraphModel(nil, nil, graph.Metadata{})
+	var buf bytes.Buffer
+	opts := render.HTMLOptions{
+		Layout:         render.LayoutLayered,
+		RankSeparation: 250,
+		NodeSeparation: 100,
+	}
+	if err := render.RenderHTML(&gm, opts, &buf); err != nil {
+		t.Fatalf("RenderHTML layered custom sep: %v", err)
+	}
+	out := buf.String()
+	for _, want := range []string{"250", "100"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("layered output missing custom separation value %q", want)
+		}
+	}
+}
+
+func TestRenderHTML_Layered_Golden(t *testing.T) {
+	nodes := []graph.Node{
+		graph.NewNode("https://example.org/A", "A", graph.NodeTypeClass, "example"),
+		graph.NewNode("https://example.org/B", "B", graph.NodeTypeClass, "example"),
+		graph.NewNode("https://example.org/C", "C", graph.NodeTypeClass, "example"),
+	}
+	links := []graph.Link{
+		graph.NewLink("https://example.org/A", "https://example.org/B", "next"),
+		graph.NewLink("https://example.org/B", "https://example.org/C", "next"),
+		graph.NewLink("https://example.org/C", "https://example.org/A", "loop"),
+	}
+	meta := graph.NewMetadata("Layered Test", "", "1.0", "https://example.org/")
+	gm := graph.NewGraphModel(nodes, links, meta)
+	var buf bytes.Buffer
+	opts := render.DefaultHTMLOptions()
+	opts.Layout = render.LayoutLayered
+	opts.Title = "Layered Test"
+	if err := render.RenderHTML(&gm, opts, &buf); err != nil {
+		t.Fatalf("RenderHTML layered golden: %v", err)
+	}
+	assertGolden(t, goldenPath(t, "layered.html"), &buf)
+}
+
+// ---------------------------------------------------------------------------
+// RenderHTML – swimlane layout
+// ---------------------------------------------------------------------------
+
+func TestRenderHTML_Swimlane_ContainsStructuralElements(t *testing.T) {
+	gm := graph.NewGraphModel(nil, nil, graph.Metadata{Title: "Swimlane Test"})
+	var buf bytes.Buffer
+	opts := render.HTMLOptions{Layout: render.LayoutSwimlane}
+	if err := render.RenderHTML(&gm, opts, &buf); err != nil {
+		t.Fatalf("RenderHTML swimlane: %v", err)
+	}
+	out := buf.String()
+
+	for _, want := range []string{
+		`<!DOCTYPE html>`,
+		`<title>Swimlane Test</title>`,
+		`<svg`,
+		`id="graph"`,
+		`id="legend"`,
+		`id="search"`,
+		`id="toolbar"`,
+		`id="tooltip"`,
+		`https://cdn.jsdelivr.net/npm/d3@7`,
+		`layout-badge`,
+		`swimlane`,
+		`lane-bg`,
+		`lane-label`,
+		`_isBackEdge`,
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("swimlane output missing %q", want)
+		}
+	}
+}
+
+func TestRenderHTML_Swimlane_NoForceSimulation(t *testing.T) {
+	gm := graph.NewGraphModel(nil, nil, graph.Metadata{})
+	var buf bytes.Buffer
+	opts := render.HTMLOptions{Layout: render.LayoutSwimlane}
+	if err := render.RenderHTML(&gm, opts, &buf); err != nil {
+		t.Fatalf("RenderHTML swimlane: %v", err)
+	}
+	out := buf.String()
+	if strings.Contains(out, `forceSimulation`) {
+		t.Error("swimlane layout must not contain forceSimulation")
+	}
+}
+
+func TestRenderHTML_Swimlane_LaneBandsPresent(t *testing.T) {
+	// Nodes with different groups should produce distinct lanes.
+	nodes := []graph.Node{
+		graph.NewNode("https://example.org/A", "A", graph.NodeTypeClass, "groupA"),
+		graph.NewNode("https://example.org/B", "B", graph.NodeTypeClass, "groupB"),
+	}
+	gm := graph.NewGraphModel(nodes, nil, graph.Metadata{})
+	var buf bytes.Buffer
+	opts := render.HTMLOptions{Layout: render.LayoutSwimlane}
+	if err := render.RenderHTML(&gm, opts, &buf); err != nil {
+		t.Fatalf("RenderHTML swimlane: %v", err)
+	}
+	out := buf.String()
+
+	// Lane background rectangles must be rendered.
+	if !strings.Contains(out, `lane-bg`) {
+		t.Error("swimlane output must contain lane-bg elements")
+	}
+}
+
+func TestRenderHTML_Swimlane_Golden(t *testing.T) {
+	nodes := []graph.Node{
+		graph.NewNode("https://example.org/A", "A", graph.NodeTypeClass, "groupA"),
+		graph.NewNode("https://example.org/B", "B", graph.NodeTypeClass, "groupA"),
+		graph.NewNode("https://example.org/C", "C", graph.NodeTypeClass, "groupB"),
+	}
+	links := []graph.Link{
+		graph.NewLink("https://example.org/A", "https://example.org/B", "next"),
+		graph.NewLink("https://example.org/B", "https://example.org/C", "cross"),
+	}
+	meta := graph.NewMetadata("Swimlane Test", "", "1.0", "https://example.org/")
+	gm := graph.NewGraphModel(nodes, links, meta)
+	var buf bytes.Buffer
+	opts := render.DefaultHTMLOptions()
+	opts.Layout = render.LayoutSwimlane
+	opts.Title = "Swimlane Test"
+	if err := render.RenderHTML(&gm, opts, &buf); err != nil {
+		t.Fatalf("RenderHTML swimlane golden: %v", err)
+	}
+	assertGolden(t, goldenPath(t, "swimlane.html"), &buf)
+}
+
