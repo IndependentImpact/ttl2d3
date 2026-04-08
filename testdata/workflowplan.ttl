@@ -1,0 +1,70 @@
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix indimp: <https://w3id.org/indimp#> .
+@prefix wfp:    <https://example.org/workflowplan#> .
+
+# ── Workflow plan ──────────────────────────────────────────────────────
+
+wfp:DocumentApprovalWorkflow
+    a indimp:WorkflowPlan ;
+    rdfs:label "Document Approval Workflow" ;
+    indimp:hasStep wfp:Submit, wfp:Review, wfp:Clarify, wfp:Approve, wfp:Reject .
+
+# ── Steps ──────────────────────────────────────────────────────────────
+
+wfp:Submit
+    a indimp:Step ;
+    rdfs:label "Submit Document" ;
+    indimp:actor "Author" .
+
+wfp:Review
+    a indimp:Step ;
+    rdfs:label "Review Document" ;
+    indimp:actor "Reviewer" .
+
+wfp:Clarify
+    a indimp:Step ;
+    rdfs:label "Request Clarification" ;
+    indimp:actor "Reviewer" .
+
+wfp:Approve
+    a indimp:Step ;
+    rdfs:label "Approve" ;
+    indimp:actor "Manager" .
+
+wfp:Reject
+    a indimp:Step ;
+    rdfs:label "Reject" ;
+    indimp:actor "Manager" .
+
+# ── Transitions ────────────────────────────────────────────────────────
+
+wfp:T1
+    a indimp:Transition ;
+    rdfs:label "submit" ;
+    indimp:fromStep wfp:Submit ;
+    indimp:toStep   wfp:Review .
+
+wfp:T2
+    a indimp:Transition ;
+    rdfs:label "needs clarification" ;
+    indimp:fromStep wfp:Review ;
+    indimp:toStep   wfp:Clarify .
+
+wfp:T3
+    a indimp:Transition ;
+    rdfs:label "approved" ;
+    indimp:fromStep wfp:Review ;
+    indimp:toStep   wfp:Approve .
+
+wfp:T4
+    a indimp:Transition ;
+    rdfs:label "rejected" ;
+    indimp:fromStep wfp:Review ;
+    indimp:toStep   wfp:Reject .
+
+wfp:T5
+    a indimp:Transition ;
+    rdfs:label "resubmit" ;
+    indimp:fromStep wfp:Clarify ;
+    indimp:toStep   wfp:Review .
