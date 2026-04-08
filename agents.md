@@ -27,7 +27,7 @@ force-directed graph visualisations.  The tool outputs either:
 * Keep branches short-lived; open a PR as soon as meaningful work exists.
 
 ### 2.2 Commits
-* **Commit often** – every logical unit of change gets its own commit.
+* **Commit often** – every logical unit of change gets its own commit. Make sure lint, vet, build and test pass before committing.
 * Write commit messages in the imperative mood using the Conventional Commits
   format:
   ```
