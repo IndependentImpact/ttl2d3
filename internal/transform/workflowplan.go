@@ -8,7 +8,7 @@ import (
 
 // indimp namespace IRIs for the WorkflowPlan vocabulary.
 const (
-	iriIndImpWorkflowPlan = "https://w3id.org/indimp#WorkflowPlan" //nolint:gosec // false positive: IRI, not a credential
+	iriIndImpWorkflowPlan = "https://w3id.org/indimp#WorkflowPlan" //nolint:gosec // IRI constant, not a credential
 	iriIndImpStep         = "https://w3id.org/indimp#Step"
 	iriIndImpHasStep      = "https://w3id.org/indimp#hasStep"
 	iriIndImpFromStep     = "https://w3id.org/indimp#fromStep"

@@ -337,7 +337,9 @@ function renderPlan(plan, wrap) {
 function makeStepNode(step, nodeEls) {
   const el = document.createElement('div');
   el.className = 'step-node';
-  el.id = 'step-' + btoa(step.id).replace(/=/g, '');
+  // Generate a safe DOM id from the IRI using encodeURIComponent to handle
+  // Unicode characters that btoa() cannot process.
+  el.id = 'step-' + encodeURIComponent(step.id).replace(/[^A-Za-z0-9_-]/g, '_');
   el.dataset.iri = step.id;
   el.dataset.label = step.label;
   el.textContent = step.label || step.id;
