@@ -985,7 +985,7 @@ rep:domain/GENERAL a skos:Concept ;
 // referenced via skos:broader/skos:narrower/skos:related are implied as nodes
 // even when they are never explicitly typed as skos:Concept.
 func TestBuildGraphModel_SKOSImpliedConceptsFromBroader(t *testing.T) {
-const src = `
+	const src = `
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix cs:   <http://example.org/implied#> .
 
@@ -1002,73 +1002,73 @@ cs:Sibling skos:prefLabel "Sibling"@en ;
     skos:broader cs:Root ;
     skos:related cs:Child .
 `
-g := parseTurtle(t, src, "http://example.org/implied")
-gm, err := transform.BuildGraphModel(g)
-if err != nil {
-t.Fatalf("BuildGraphModel: %v", err)
-}
+	g := parseTurtle(t, src, "http://example.org/implied")
+	gm, err := transform.BuildGraphModel(g)
+	if err != nil {
+		t.Fatalf("BuildGraphModel: %v", err)
+	}
 
-const (
-iriScheme  = "http://example.org/implied#Scheme"
-iriRoot    = "http://example.org/implied#Root"
-iriChild   = "http://example.org/implied#Child"
-iriSibling = "http://example.org/implied#Sibling"
-)
+	const (
+		iriScheme  = "http://example.org/implied#Scheme"
+		iriRoot    = "http://example.org/implied#Root"
+		iriChild   = "http://example.org/implied#Child"
+		iriSibling = "http://example.org/implied#Sibling"
+	)
 
-// All four entities must be present as nodes even though only the scheme
-// is explicitly typed.
-for _, id := range []string{iriScheme, iriRoot, iriChild, iriSibling} {
-n := findNode(gm.Nodes, id)
-if n == nil {
-t.Errorf("node %q not found (should be implied by SKOS relations)", id)
-continue
-}
-if n.Type != graph.NodeTypeClass {
-t.Errorf("node %q Type = %q, want %q", id, n.Type, graph.NodeTypeClass)
-}
-}
+	// All four entities must be present as nodes even though only the scheme
+	// is explicitly typed.
+	for _, id := range []string{iriScheme, iriRoot, iriChild, iriSibling} {
+		n := findNode(gm.Nodes, id)
+		if n == nil {
+			t.Errorf("node %q not found (should be implied by SKOS relations)", id)
+			continue
+		}
+		if n.Type != graph.NodeTypeClass {
+			t.Errorf("node %q Type = %q, want %q", id, n.Type, graph.NodeTypeClass)
+		}
+	}
 
-// Labels from skos:prefLabel must be resolved for the implied nodes.
-wantLabels := map[string]string{
-iriScheme:  "My Scheme",
-iriRoot:    "Root",
-iriChild:   "Child",
-iriSibling: "Sibling",
-}
-for id, want := range wantLabels {
-n := findNode(gm.Nodes, id)
-if n == nil {
-continue
-}
-if n.Label != want {
-t.Errorf("node %q Label = %q, want %q", id, n.Label, want)
-}
-}
+	// Labels from skos:prefLabel must be resolved for the implied nodes.
+	wantLabels := map[string]string{
+		iriScheme:  "My Scheme",
+		iriRoot:    "Root",
+		iriChild:   "Child",
+		iriSibling: "Sibling",
+	}
+	for id, want := range wantLabels {
+		n := findNode(gm.Nodes, id)
+		if n == nil {
+			continue
+		}
+		if n.Label != want {
+			t.Errorf("node %q Label = %q, want %q", id, n.Label, want)
+		}
+	}
 
-// SKOS structural links must be present.
-if !hasLink(gm.Links, iriRoot, iriScheme, "topConceptOf") {
-t.Error("missing topConceptOf link Root → Scheme")
-}
-if !hasLink(gm.Links, iriChild, iriRoot, "broader") {
-t.Error("missing broader link Child → Root")
-}
-if !hasLink(gm.Links, iriSibling, iriRoot, "broader") {
-t.Error("missing broader link Sibling → Root")
-}
-if !hasLink(gm.Links, iriSibling, iriChild, "related") {
-t.Error("missing related link Sibling → Child")
-}
+	// SKOS structural links must be present.
+	if !hasLink(gm.Links, iriRoot, iriScheme, "topConceptOf") {
+		t.Error("missing topConceptOf link Root → Scheme")
+	}
+	if !hasLink(gm.Links, iriChild, iriRoot, "broader") {
+		t.Error("missing broader link Child → Root")
+	}
+	if !hasLink(gm.Links, iriSibling, iriRoot, "broader") {
+		t.Error("missing broader link Sibling → Root")
+	}
+	if !hasLink(gm.Links, iriSibling, iriChild, "related") {
+		t.Error("missing related link Sibling → Child")
+	}
 
-if err := gm.Validate(); err != nil {
-t.Errorf("GraphModel.Validate() = %v", err)
-}
+	if err := gm.Validate(); err != nil {
+		t.Errorf("GraphModel.Validate() = %v", err)
+	}
 }
 
 // TestBuildGraphModel_SKOSImpliedConceptsFromHasTopConcept verifies that
 // concepts referenced via skos:hasTopConcept appear as nodes even when never
 // explicitly typed.
 func TestBuildGraphModel_SKOSImpliedConceptsFromHasTopConcept(t *testing.T) {
-const src = `
+	const src = `
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix cs:   <http://example.org/htc#> .
 
@@ -1081,34 +1081,34 @@ cs:Top skos:prefLabel "Top"@en .
 cs:Leaf skos:broader cs:Top ;
     skos:prefLabel "Leaf"@en .
 `
-g := parseTurtle(t, src, "http://example.org/htc")
-gm, err := transform.BuildGraphModel(g)
-if err != nil {
-t.Fatalf("BuildGraphModel: %v", err)
-}
+	g := parseTurtle(t, src, "http://example.org/htc")
+	gm, err := transform.BuildGraphModel(g)
+	if err != nil {
+		t.Fatalf("BuildGraphModel: %v", err)
+	}
 
-const (
-iriScheme = "http://example.org/htc#Scheme"
-iriTop    = "http://example.org/htc#Top"
-iriLeaf   = "http://example.org/htc#Leaf"
-)
+	const (
+		iriScheme = "http://example.org/htc#Scheme"
+		iriTop    = "http://example.org/htc#Top"
+		iriLeaf   = "http://example.org/htc#Leaf"
+	)
 
-for _, id := range []string{iriScheme, iriTop, iriLeaf} {
-if findNode(gm.Nodes, id) == nil {
-t.Errorf("node %q not found", id)
-}
-}
+	for _, id := range []string{iriScheme, iriTop, iriLeaf} {
+		if findNode(gm.Nodes, id) == nil {
+			t.Errorf("node %q not found", id)
+		}
+	}
 
-if !hasLink(gm.Links, iriScheme, iriTop, "hasTopConcept") {
-t.Error("missing hasTopConcept link Scheme → Top")
-}
-if !hasLink(gm.Links, iriLeaf, iriTop, "broader") {
-t.Error("missing broader link Leaf → Top")
-}
+	if !hasLink(gm.Links, iriScheme, iriTop, "hasTopConcept") {
+		t.Error("missing hasTopConcept link Scheme → Top")
+	}
+	if !hasLink(gm.Links, iriLeaf, iriTop, "broader") {
+		t.Error("missing broader link Leaf → Top")
+	}
 
-if err := gm.Validate(); err != nil {
-t.Errorf("GraphModel.Validate() = %v", err)
-}
+	if err := gm.Validate(); err != nil {
+		t.Errorf("GraphModel.Validate() = %v", err)
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -1119,7 +1119,7 @@ t.Errorf("GraphModel.Validate() = %v", err)
 // skos:ConceptScheme (no owl:Ontology), the ConceptScheme IRI and label are
 // used as the metadata base IRI and title respectively.
 func TestBuildGraphModel_SKOSMetadata(t *testing.T) {
-const src = `
+	const src = `
 @prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
@@ -1128,16 +1128,190 @@ const src = `
     a skos:ConceptScheme ;
     rdfs:label "Reviewer decision to outcome mapping" .
 `
-g := parseTurtle(t, src, "http://example.org/decisions")
-gm, err := transform.BuildGraphModel(g)
-if err != nil {
-t.Fatalf("BuildGraphModel: %v", err)
+	g := parseTurtle(t, src, "http://example.org/decisions")
+	gm, err := transform.BuildGraphModel(g)
+	if err != nil {
+		t.Fatalf("BuildGraphModel: %v", err)
+	}
+
+	if gm.Metadata.Title != "Reviewer decision to outcome mapping" {
+		t.Errorf("Metadata.Title = %q, want %q", gm.Metadata.Title, "Reviewer decision to outcome mapping")
+	}
+	if gm.Metadata.BaseIRI != "http://example.org/decisions" {
+		t.Errorf("Metadata.BaseIRI = %q, want %q", gm.Metadata.BaseIRI, "http://example.org/decisions")
+	}
 }
 
-if gm.Metadata.Title != "Reviewer decision to outcome mapping" {
-t.Errorf("Metadata.Title = %q, want %q", gm.Metadata.Title, "Reviewer decision to outcome mapping")
+// ---------------------------------------------------------------------------
+// BuildGraphModel – custom object properties from SKOS concept scheme members
+// ---------------------------------------------------------------------------
+
+// TestBuildGraphModel_CustomObjectPropertiesFromSKOSMember verifies the fix
+// for the issue "Expand on display of skos Concept scheme": resources that are
+// part of a concept scheme (via skos:inScheme) and that use custom/unrecognised
+// object properties to link to other concepts must have both the target
+// concepts and the property links included in the graph.
+//
+// Example pattern from the issue:
+//
+// map:DecisionOutcomeMappingApprove a indimp:DecisionOutcomeMapping ;
+//
+//	skos:inScheme map:DecisionOutcomeMappingScheme ;
+//	indimp:decision concept:Approve ;
+//	indimp:mapsOutcome concept:DocOutcomeApproved .
+func TestBuildGraphModel_CustomObjectPropertiesFromSKOSMember(t *testing.T) {
+	const src = `
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix map:     <http://example.org/map#> .
+@prefix indimp:  <http://example.org/indimp#> .
+@prefix concept: <http://example.org/concept#> .
+
+map:DecisionOutcomeMappingScheme a skos:ConceptScheme ;
+    rdfs:label "Decision Outcome Mapping Scheme" .
+
+map:DecisionOutcomeMappingApprove a indimp:DecisionOutcomeMapping ;
+    skos:inScheme map:DecisionOutcomeMappingScheme ;
+    indimp:decision concept:Approve ;
+    indimp:mapsOutcome concept:DocOutcomeApproved .
+
+concept:Approve a skos:Concept ;
+    skos:prefLabel "Approve"@en .
+
+concept:DocOutcomeApproved a skos:Concept ;
+    skos:prefLabel "Document Outcome Approved"@en .
+`
+	g := parseTurtle(t, src, "http://example.org/map")
+	gm, err := transform.BuildGraphModel(g)
+	if err != nil {
+		t.Fatalf("BuildGraphModel: %v", err)
+	}
+
+	const (
+		iriScheme     = "http://example.org/map#DecisionOutcomeMappingScheme"
+		iriMapping    = "http://example.org/map#DecisionOutcomeMappingApprove"
+		iriApprove    = "http://example.org/concept#Approve"
+		iriDocOutcome = "http://example.org/concept#DocOutcomeApproved"
+		iriDecision   = "http://example.org/indimp#decision"
+		iriMaps       = "http://example.org/indimp#mapsOutcome"
+	)
+
+	// All four resources must appear as nodes.
+	for _, id := range []string{iriScheme, iriMapping, iriApprove, iriDocOutcome} {
+		if findNode(gm.Nodes, id) == nil {
+			t.Errorf("node %q not found", id)
+		}
+	}
+
+	// The skos:inScheme link must still be present.
+	if !hasLink(gm.Links, iriMapping, iriScheme, "inScheme") {
+		t.Errorf("missing inScheme link Mapping → Scheme")
+	}
+
+	// Custom property links must be present.
+	if !hasLink(gm.Links, iriMapping, iriApprove, "decision") {
+		t.Errorf("missing indimp:decision link Mapping → Approve")
+	}
+	if !hasLink(gm.Links, iriMapping, iriDocOutcome, "mapsOutcome") {
+		t.Errorf("missing indimp:mapsOutcome link Mapping → DocOutcomeApproved")
+	}
+
+	if err := gm.Validate(); err != nil {
+		t.Errorf("GraphModel.Validate() = %v", err)
+	}
 }
-if gm.Metadata.BaseIRI != "http://example.org/decisions" {
-t.Errorf("Metadata.BaseIRI = %q, want %q", gm.Metadata.BaseIRI, "http://example.org/decisions")
+
+// TestBuildGraphModel_CustomObjectPropertiesImplyTargetNodes verifies that
+// even when the target concepts of custom object properties are NOT explicitly
+// typed anywhere in the input, they are still added as implied nodes.
+func TestBuildGraphModel_CustomObjectPropertiesImplyTargetNodes(t *testing.T) {
+	const src = `
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix map:     <http://example.org/map#> .
+@prefix indimp:  <http://example.org/indimp#> .
+@prefix concept: <http://example.org/concept#> .
+
+map:Scheme a skos:ConceptScheme .
+
+map:MappingA a indimp:Mapping ;
+    skos:inScheme map:Scheme ;
+    indimp:decision concept:Accept .
+`
+	g := parseTurtle(t, src, "http://example.org/map")
+	gm, err := transform.BuildGraphModel(g)
+	if err != nil {
+		t.Fatalf("BuildGraphModel: %v", err)
+	}
+
+	const (
+		iriScheme   = "http://example.org/map#Scheme"
+		iriMappingA = "http://example.org/map#MappingA"
+		iriAccept   = "http://example.org/concept#Accept"
+	)
+
+	// concept:Accept is never explicitly typed but must be implied as a node.
+	for _, id := range []string{iriScheme, iriMappingA, iriAccept} {
+		if findNode(gm.Nodes, id) == nil {
+			t.Errorf("node %q not found", id)
+		}
+	}
+
+	if !hasLink(gm.Links, iriMappingA, iriScheme, "inScheme") {
+		t.Errorf("missing inScheme link")
+	}
+	if !hasLink(gm.Links, iriMappingA, iriAccept, "decision") {
+		t.Errorf("missing indimp:decision link MappingA → Accept")
+	}
+
+	if err := gm.Validate(); err != nil {
+		t.Errorf("GraphModel.Validate() = %v", err)
+	}
 }
+
+// TestBuildGraphModel_CustomTypedInstanceCustomProperties verifies that a
+// resource typed with an unrecognised class (not owl:Class, skos:Concept, etc.)
+// appears as a NodeTypeInstance and its custom IRI-valued properties become
+// graph edges.
+func TestBuildGraphModel_CustomTypedInstanceCustomProperties(t *testing.T) {
+	const src = `
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix ex:      <http://example.org/ex#> .
+
+ex:MyClass a ex:CustomClass ;
+    ex:relatesTo ex:OtherClass .
+
+ex:OtherClass a skos:Concept ;
+    skos:prefLabel "Other"@en .
+`
+	g := parseTurtle(t, src, "http://example.org/ex")
+	gm, err := transform.BuildGraphModel(g)
+	if err != nil {
+		t.Fatalf("BuildGraphModel: %v", err)
+	}
+
+	const (
+		iriMyClass    = "http://example.org/ex#MyClass"
+		iriOtherClass = "http://example.org/ex#OtherClass"
+	)
+
+	n := findNode(gm.Nodes, iriMyClass)
+	if n == nil {
+		t.Fatalf("node %q not found", iriMyClass)
+	}
+	if n.Type != graph.NodeTypeInstance {
+		t.Errorf("node %q Type = %q, want %q", iriMyClass, n.Type, graph.NodeTypeInstance)
+	}
+
+	if findNode(gm.Nodes, iriOtherClass) == nil {
+		t.Errorf("node %q not found", iriOtherClass)
+	}
+
+	if !hasLink(gm.Links, iriMyClass, iriOtherClass, "relatesTo") {
+		t.Errorf("missing ex:relatesTo link MyClass → OtherClass")
+	}
+
+	if err := gm.Validate(); err != nil {
+		t.Errorf("GraphModel.Validate() = %v", err)
+	}
 }
