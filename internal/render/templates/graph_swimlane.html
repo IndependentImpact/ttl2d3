@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{.Title}}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f8f9fa;
+      color: #212529;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Toolbar ─────────────────────────────────────────────────────────── */
+    #toolbar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 1rem;
+      background: #ffffff;
+      border-bottom: 1px solid #dee2e6;
+      flex-shrink: 0;
+    }
+
+    #toolbar h1 {
+      font-size: 1rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 30rem;
+    }
+
+    .layout-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: #fff3bf;
+      color: #e67700;
+      border: 1px solid #ffd43b;
+      border-radius: 3px;
+      padding: 0.125rem 0.375rem;
+      white-space: nowrap;
+    }
+
+    #search {
+      flex: 1;
+      max-width: 20rem;
+      padding: 0.25rem 0.5rem;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      font-size: 0.875rem;
+      color: #212529;
+      background: #ffffff;
+    }
+
+    #search:focus {
+      outline: 2px solid #0d6efd;
+      outline-offset: 1px;
+    }
+
+    /* ── Graph container ──────────────────────────────────────────────────── */
+    #graph-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #graph {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* ── Lane backgrounds ────────────────────────────────────────────────── */
+    .lane-bg {
+      fill-opacity: 0.06;
+      stroke-opacity: 0.3;
+      stroke-width: 1px;
+    }
+
+    .lane-label {
+      font-size: 12px;
+      font-weight: 700;
+      fill: #495057;
+      pointer-events: none;
+    }
+
+    /* ── Links ────────────────────────────────────────────────────────────── */
+    .link {
+      fill: none;
+      stroke: #868e96;
+      stroke-opacity: 0.6;
+      stroke-width: 1.5px;
+    }
+
+    .link.back-edge {
+      stroke: #e67700;
+      stroke-dasharray: 6 3;
+      stroke-opacity: 0.7;
+    }
+
+    .link.faded { stroke-opacity: 0.08; }
+    .link.back-edge.faded { stroke-opacity: 0.08; }
+
+    /* ── Nodes ────────────────────────────────────────────────────────────── */
+    .node { cursor: pointer; }
+
+    .node path {
+      stroke-width: 1.5px;
+      transition: stroke-width 0.1s;
+    }
+
+    .node.faded path        { opacity: 0.15; }
+    .node.faded .node-label { opacity: 0.15; }
+
+    .node.highlighted path { stroke-width: 3px; }
+
+    .node-label {
+      font-size: 11px;
+      fill: #343a40;
+      pointer-events: none;
+      text-anchor: middle;
+    }
+
+    /* ── Link labels ──────────────────────────────────────────────────────── */
+    .link-label {
+      font-size: 10px;
+      fill: #636c72;
+      pointer-events: none;
+      text-anchor: middle;
+    }
+
+    .link-label.faded { opacity: 0.08; }
+
+    /* ── Legend ───────────────────────────────────────────────────────────── */
+    #legend {
+      position: absolute;
+      bottom: 1rem;
+      left: 1rem;
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8125rem;
+      line-height: 1.5;
+    }
+
+    #legend h2 {
+      font-size: 0.8125rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+      color: #212529;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .legend-swatch {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+    }
+
+    .legend-swatch.circle   { border-radius: 50%; }
+    .legend-swatch.diamond  { transform: rotate(45deg); width: 12px; height: 12px; }
+    .legend-swatch.triangle { clip-path: polygon(50% 0%, 0% 100%, 100% 100%); }
+    .legend-swatch.outline  { background: transparent; border: 2px solid; border-radius: 3px; }
+    .legend-swatch.dashed-line {
+      height: 2px;
+      background: transparent;
+      border-top: 2px dashed #e67700;
+      width: 20px;
+    }
+
+    #namespace-list {
+      margin-top: 0.25rem;
+      max-height: 8rem;
+      overflow: auto;
+      padding-right: 0.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .namespace-item { display: flex; align-items: baseline; gap: 0.35rem; }
+    .namespace-prefix { font-weight: 700; min-width: 3rem; color: #212529; }
+    .namespace-iri { font-size: 0.75rem; color: #495057; word-break: break-all; }
+    .namespace-count { font-size: 0.75rem; color: #6c757d; }
+
+    /* ── Tooltip ──────────────────────────────────────────────────────────── */
+    #tooltip {
+      position: fixed;
+      background: rgba(33, 37, 41, 0.92);
+      color: #f8f9fa;
+      padding: 0.375rem 0.625rem;
+      border-radius: 4px;
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.1s;
+      max-width: 24rem;
+      word-break: break-all;
+      z-index: 100;
+    }
+
+    #tooltip.visible { opacity: 1; }
+
+    #tooltip dt { font-weight: 700; display: inline; }
+    #tooltip dt::after { content: ": "; }
+    #tooltip dd { display: inline; margin: 0; }
+    #tooltip p  { margin: 0; }
+  </style>
+</head>
+<body>
+  <div id="toolbar">
+    <h1>{{.Title}}</h1>
+    <span class="layout-badge" title="Swimlane process layout">swimlane</span>
+    <input
+      id="search"
+      type="search"
+      placeholder="Search nodes…"
+      aria-label="Search nodes by label"
+    />
+  </div>
+
+  <div id="graph-container">
+    <svg
+      id="graph"
+      role="img"
+      aria-label="Swimlane process graph"
+    ></svg>
+
+    <nav id="legend" aria-label="Graph legend">
+      <h2>Legend</h2>
+      <div class="legend-item">
+        <span class="legend-swatch circle" style="background:#1f77b4;" aria-hidden="true"></span>
+        <span>Class</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-swatch triangle" style="background:#0c8599;" aria-hidden="true"></span>
+        <span>Union</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-swatch diamond" style="background:#9e5200;" aria-hidden="true"></span>
+        <span>Property</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-swatch" style="background:#2ca02c;" aria-hidden="true"></span>
+        <span>Instance</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-swatch" style="background:#d62728;" aria-hidden="true"></span>
+        <span>Literal</span>
+      </div>
+      <h2>Edges</h2>
+      <div class="legend-item">
+        <span class="legend-swatch" style="height:2px;background:#868e96;width:20px;margin-top:6px;" aria-hidden="true"></span>
+        <span>Forward</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-swatch dashed-line" aria-hidden="true"></span>
+        <span>Back-edge</span>
+      </div>
+      <h2>Origin</h2>
+      <div class="legend-item">
+        <span class="legend-swatch outline" style="border-color:#0b7285;" aria-hidden="true"></span>
+        <span>Local</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-swatch outline" style="border-color:#868e96;" aria-hidden="true"></span>
+        <span>Imported</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-swatch outline" style="border-color:#495057;" aria-hidden="true"></span>
+        <span>Internal</span>
+      </div>
+      <h2>Namespaces</h2>
+      <div id="namespace-list" aria-label="Namespace prefixes"></div>
+    </nav>
+  </div>
+
+  <div id="tooltip" role="tooltip"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    /* ── Embedded graph data ────────────────────────────────────────────── */
+    const graphData = {{.GraphJSON}};
+
+    /* ── Layout configuration ───────────────────────────────────────────── */
+    const LAYOUT_DIR = '{{.LayoutDirection}}'; // 'lr' or 'tb'
+    const RANK_SEP   = {{.RankSeparation}};
+    const NODE_SEP   = {{.NodeSeparation}};
+
+    /* ── Lane geometry ──────────────────────────────────────────────────── */
+    // Lane header size (the dimension perpendicular to flow direction).
+    const LANE_HEADER = 36; // px
+    // Internal padding inside a lane (cross-axis padding).
+    const LANE_PADDING = 24; // px
+
+    /* ── Type/origin mappings ───────────────────────────────────────────── */
+    const TYPE_COLOR = {
+      class:    '#1f77b4',
+      property: '#9e5200',
+      union:    '#0c8599',
+      instance: '#2ca02c',
+      literal:  '#d62728',
+    };
+
+    const TYPE_SYMBOL = {
+      class:    d3.symbolCircle,
+      property: d3.symbolDiamond,
+      union:    d3.symbolTriangle,
+      instance: d3.symbolSquare,
+      literal:  d3.symbolSquare,
+    };
+
+    const ORIGIN_COLOR = {
+      local:    '#0b7285',
+      imported: '#868e96',
+      internal: '#495057',
+    };
+
+    const ORIGIN_LABEL = {
+      local: 'Local',
+      imported: 'Imported',
+      internal: 'Internal',
+    };
+
+    // Palette for lane backgrounds (repeating).
+    const LANE_COLORS = [
+      '#4c6ef5', '#f03e3e', '#2f9e44', '#e67700',
+      '#7048e8', '#0c8599', '#d6336c', '#5c7cfa',
+    ];
+
+    const NODE_SIZE = 120;
+
+    /* ── SVG + zoom ─────────────────────────────────────────────────────── */
+    const graphContainer = document.getElementById('graph-container');
+    const svg = d3.select('#graph');
+
+    function getDims() {
+      const r = graphContainer.getBoundingClientRect();
+      return { width: r.width || 800, height: r.height || 600 };
+    }
+
+    let { width, height } = getDims();
+
+    const root = svg.append('g').attr('class', 'root');
+
+    const zoom = d3.zoom()
+      .scaleExtent([0.05, 20])
+      .on('zoom', (event) => root.attr('transform', event.transform));
+
+    svg.call(zoom).on('dblclick.zoom', null);
+
+    /* ── Arrow-head markers ─────────────────────────────────────────────── */
+    const defs = svg.append('defs');
+
+    defs.append('marker')
+      .attr('id', 'arrowhead')
+      .attr('viewBox', '0 -4 10 8')
+      .attr('refX', 16).attr('refY', 0)
+      .attr('markerWidth', 8).attr('markerHeight', 8)
+      .attr('orient', 'auto')
+      .append('path').attr('d', 'M0,-4L10,0L0,4').attr('fill', '#868e96');
+
+    defs.append('marker')
+      .attr('id', 'arrowhead-back')
+      .attr('viewBox', '0 -4 10 8')
+      .attr('refX', 16).attr('refY', 0)
+      .attr('markerWidth', 8).attr('markerHeight', 8)
+      .attr('orient', 'auto')
+      .append('path').attr('d', 'M0,-4L10,0L0,4').attr('fill', '#e67700');
+
+    /* ── Data ───────────────────────────────────────────────────────────── */
+    const rawNodes = (graphData.nodes || []).map((d) => Object.assign({}, d));
+    const rawLinks = (graphData.links || []).map((d) => Object.assign({}, d));
+    const baseIRI  = (graphData.metadata && graphData.metadata.baseIRI) || '';
+
+    const nodeById = new Map(rawNodes.map((n) => [n.id, n]));
+
+    function namespaceOf(iri) {
+      if (!iri) return '';
+      const hash = iri.lastIndexOf('#');
+      if (hash >= 0) return iri.slice(0, hash + 1);
+      const slash = iri.lastIndexOf('/');
+      if (slash >= 0) return iri.slice(0, slash + 1);
+      return '';
+    }
+
+    function originForNode(d) {
+      if (d.type === 'union') return 'internal';
+      if (baseIRI && d.id && d.id.startsWith(baseIRI)) return 'local';
+      return 'imported';
+    }
+
+    rawNodes.forEach((n) => {
+      n._origin    = originForNode(n);
+      n._namespace = namespaceOf(n.id);
+    });
+
+    /* ── Namespace legend ───────────────────────────────────────────────── */
+    (function renderNamespaces() {
+      const list = document.getElementById('namespace-list');
+      if (!list) return;
+      const map = new Map();
+      rawNodes.forEach((n) => {
+        if (!n._namespace || n.type === 'union') return;
+        const entry = map.get(n._namespace) || { ns: n._namespace, prefix: n.group || '', count: 0 };
+        entry.count += 1;
+        map.set(n._namespace, entry);
+      });
+      Array.from(map.values()).sort((a, b) => a.ns.localeCompare(b.ns)).forEach((entry) => {
+        const item = document.createElement('div');
+        item.className = 'namespace-item';
+        if (entry.prefix) {
+          const pEl = document.createElement('span');
+          pEl.className = 'namespace-prefix';
+          pEl.textContent = entry.prefix + ':';
+          item.appendChild(pEl);
+        }
+        const iEl = document.createElement('span');
+        iEl.className = 'namespace-iri';
+        iEl.textContent = entry.ns;
+        item.appendChild(iEl);
+        const cEl = document.createElement('span');
+        cEl.className = 'namespace-count';
+        cEl.textContent = '(' + entry.count + ')';
+        item.appendChild(cEl);
+        list.appendChild(item);
+      });
+    }());
+
+    /* ── Back-edge detection (DFS) ──────────────────────────────────────── */
+    const outEdges = new Map();
+    rawNodes.forEach((n) => outEdges.set(n.id, []));
+    rawLinks.forEach((lk) => {
+      if (!outEdges.has(lk.source)) outEdges.set(lk.source, []);
+      outEdges.get(lk.source).push(lk.target);
+    });
+
+    const UNVISITED = 0, IN_STACK = 1, DONE = 2;
+    const visitState = new Map(rawNodes.map((n) => [n.id, UNVISITED]));
+    const backEdgeKeys = new Set();
+
+    function dfs(nodeId) {
+      visitState.set(nodeId, IN_STACK);
+      for (const t of (outEdges.get(nodeId) || [])) {
+        if (!visitState.has(t)) continue;
+        if (visitState.get(t) === IN_STACK) {
+          backEdgeKeys.add(nodeId + '\x00' + t);
+        } else if (visitState.get(t) === UNVISITED) {
+          dfs(t);
+        }
+      }
+      visitState.set(nodeId, DONE);
+    }
+    rawNodes.forEach((n) => { if (visitState.get(n.id) === UNVISITED) dfs(n.id); });
+    rawLinks.forEach((lk) => { lk._isBackEdge = backEdgeKeys.has(lk.source + '\x00' + lk.target); });
+
+    /* ── Rank assignment (longest-path on forward DAG) ──────────────────── */
+    const rank = new Map(rawNodes.map((n) => [n.id, 0]));
+    const indegree = new Map(rawNodes.map((n) => [n.id, 0]));
+    rawLinks.forEach((lk) => {
+      if (!lk._isBackEdge) indegree.set(lk.target, (indegree.get(lk.target) || 0) + 1);
+    });
+
+    const topo = [];
+    rawNodes.filter((n) => indegree.get(n.id) === 0).map((n) => n.id).sort().forEach((id) => topo.push(id));
+    let qi = 0;
+    while (qi < topo.length) {
+      const u = topo[qi++];
+      const ru = rank.get(u) || 0;
+      outEdges.get(u).slice().sort().forEach((v) => {
+        if (backEdgeKeys.has(u + '\x00' + v)) return;
+        const nr = ru + 1;
+        if (nr > (rank.get(v) || 0)) rank.set(v, nr);
+        indegree.set(v, (indegree.get(v) || 0) - 1);
+        if (indegree.get(v) === 0) topo.push(v);
+      });
+    }
+
+    /* ── Lane assignment ────────────────────────────────────────────────── */
+    // Lanes are determined by the node's `group` field (namespace prefix).
+    // Nodes without a group are placed in a default lane.
+    const UNGROUPED_LANE = '(other)';
+    const laneKeyForNode = (n) => (n.group && n.type !== 'union') ? n.group : UNGROUPED_LANE;
+
+    // Collect unique lane keys in sorted order for determinism.
+    const laneKeySet = new Set(rawNodes.map(laneKeyForNode));
+    const laneKeys = Array.from(laneKeySet).sort((a, b) => {
+      // Put (other) last.
+      if (a === UNGROUPED_LANE) return 1;
+      if (b === UNGROUPED_LANE) return -1;
+      return a.localeCompare(b);
+    });
+
+    const laneIndex = new Map(laneKeys.map((k, i) => [k, i]));
+    rawNodes.forEach((n) => { n._lane = laneIndex.get(laneKeyForNode(n)) || 0; });
+
+    /* ── Node coordinate assignment ─────────────────────────────────────── */
+    // Group nodes by (rank, lane) for within-slot ordering.
+    const slots = new Map(); // "rank_lane" → [node, ...]
+    rawNodes.forEach((n) => {
+      const key = (rank.get(n.id) || 0) + '_' + n._lane;
+      if (!slots.has(key)) slots.set(key, []);
+      slots.get(key).push(n);
+    });
+    slots.forEach((g) => g.sort((a, b) => (a.label || a.id).localeCompare(b.label || b.id)));
+
+    const numLanes = laneKeys.length || 1;
+    const maxRank  = Math.max(...rank.values(), 0);
+
+    const PADDING     = 60; // outer margin
+    const laneSize    = (laneKeys.length > 0)
+      ? Math.max(NODE_SEP * 2, (LAYOUT_DIR === 'lr' ? height : width) / numLanes - LANE_HEADER)
+      : NODE_SEP * 4;
+
+    laneKeys.forEach((lk, li) => {
+      // Determine all nodes in this lane grouped by rank.
+      const rankGroups = new Map();
+      rawNodes.filter((n) => n._lane === li).forEach((n) => {
+        const r = rank.get(n.id) || 0;
+        if (!rankGroups.has(r)) rankGroups.set(r, []);
+        rankGroups.get(r).push(n);
+      });
+      rankGroups.forEach((group) => group.sort((a, b) => (a.label || a.id).localeCompare(b.label || b.id)));
+
+      rankGroups.forEach((group, r) => {
+        const n = group.length;
+        group.forEach((node, i) => {
+          // Primary axis (rank → flow direction).
+          const primaryCoord = PADDING + r * RANK_SEP;
+          // Cross axis (within lane, centred).
+          const laneStart = LANE_HEADER + li * (laneSize + LANE_HEADER);
+          const usable    = laneSize - 2 * LANE_PADDING;
+          const crossSpan = (n - 1) * NODE_SEP;
+          const crossStart = laneStart + LANE_PADDING + Math.max(0, (usable - crossSpan) / 2);
+          const crossCoord = crossStart + i * NODE_SEP;
+
+          if (LAYOUT_DIR === 'lr') {
+            node._x = primaryCoord;
+            node._y = crossCoord;
+          } else {
+            node._x = crossCoord;
+            node._y = primaryCoord;
+          }
+        });
+      });
+    });
+
+    /* ── Render lane backgrounds ────────────────────────────────────────── */
+    const laneGroup = root.append('g').attr('class', 'lanes');
+
+    // Compute total extent in flow direction.
+    const totalPrimary = PADDING + maxRank * RANK_SEP + RANK_SEP;
+
+    laneKeys.forEach((lk, li) => {
+      const color = LANE_COLORS[li % LANE_COLORS.length];
+      const laneStart = LANE_HEADER + li * (laneSize + LANE_HEADER);
+
+      if (LAYOUT_DIR === 'lr') {
+        // Horizontal bands.
+        laneGroup.append('rect')
+          .attr('class', 'lane-bg')
+          .attr('x', 0).attr('y', laneStart)
+          .attr('width', totalPrimary).attr('height', laneSize)
+          .attr('fill', color).attr('stroke', color);
+
+        laneGroup.append('rect')
+          .attr('x', 0).attr('y', li * (laneSize + LANE_HEADER))
+          .attr('width', totalPrimary).attr('height', LANE_HEADER)
+          .attr('fill', color).attr('fill-opacity', 0.18)
+          .attr('stroke', color).attr('stroke-opacity', 0.3);
+
+        laneGroup.append('text')
+          .attr('class', 'lane-label')
+          .attr('x', 8)
+          .attr('y', li * (laneSize + LANE_HEADER) + LANE_HEADER / 2 + 4)
+          .text(lk);
+      } else {
+        // Vertical bands.
+        laneGroup.append('rect')
+          .attr('class', 'lane-bg')
+          .attr('x', laneStart).attr('y', 0)
+          .attr('width', laneSize).attr('height', totalPrimary)
+          .attr('fill', color).attr('stroke', color);
+
+        laneGroup.append('rect')
+          .attr('x', li * (laneSize + LANE_HEADER)).attr('y', 0)
+          .attr('width', LANE_HEADER).attr('height', totalPrimary)
+          .attr('fill', color).attr('fill-opacity', 0.18)
+          .attr('stroke', color).attr('stroke-opacity', 0.3);
+
+        laneGroup.append('text')
+          .attr('class', 'lane-label')
+          .attr('transform', `rotate(-90)`)
+          .attr('x', -totalPrimary + 8)
+          .attr('y', li * (laneSize + LANE_HEADER) + LANE_HEADER / 2 + 4)
+          .text(lk);
+      }
+    });
+
+    /* ── Render links + nodes ───────────────────────────────────────────── */
+    // Parallel-edge curvature.
+    const CURVE_STEP = 40;
+    const SEP = '\x00';
+    const pairCounts  = Object.create(null);
+    const pairIdxCtrs = Object.create(null);
+    rawLinks.forEach((d) => { const k = d.source + SEP + d.target; pairCounts[k] = (pairCounts[k] || 0) + 1; });
+    rawLinks.forEach((d) => {
+      const k = d.source + SEP + d.target;
+      if (pairIdxCtrs[k] === undefined) pairIdxCtrs[k] = 0;
+      const cnt = pairCounts[k];
+      const i   = pairIdxCtrs[k]++;
+      d._curvature = (i - (cnt - 1) / 2) * CURVE_STEP;
+      d._loopIdx   = i;
+    });
+
+    const linkGroup2 = root.append('g').attr('class', 'links');
+    const nodeGroup2 = root.append('g').attr('class', 'nodes');
+
+    const linkSel = linkGroup2.selectAll('.link')
+      .data(rawLinks)
+      .join('path')
+        .attr('class', (d) => 'link' + (d._isBackEdge ? ' back-edge' : ''))
+        .attr('marker-end', (d) => d._isBackEdge ? 'url(#arrowhead-back)' : 'url(#arrowhead)');
+
+    const linkLabelSel = linkGroup2.selectAll('.link-label')
+      .data(rawLinks.filter((d) => d.label && !d._isBackEdge))
+      .join('text')
+        .attr('class', 'link-label')
+        .text((d) => d.label);
+
+    const symbolGen = d3.symbol().size(NODE_SIZE);
+
+    const nodeSel = nodeGroup2.selectAll('.node')
+      .data(rawNodes)
+      .join('g')
+        .attr('class', 'node')
+        .attr('aria-label', (d) => `${d.label || d.id} (${d.type})`);
+
+    nodeSel.append('path')
+      .attr('d', (d) => symbolGen.type(TYPE_SYMBOL[d.type] || d3.symbolCircle)())
+      .attr('fill',   (d) => TYPE_COLOR[d.type] || '#999999')
+      .attr('stroke', (d) => ORIGIN_COLOR[d._origin] || d3.color(TYPE_COLOR[d.type] || '#999999').darker(0.6));
+
+    nodeSel.append('text')
+      .attr('class', 'node-label')
+      .attr('dy', 14)
+      .text((d) => d.label || d.id);
+
+    /* ── Fixed coordinate placement ─────────────────────────────────────── */
+    const LOOP_BASE      = 24;
+    const LOOP_INCREMENT = 16;
+
+    function nodeX(id) { const n = nodeById.get(id); return n ? (n._x || 0) : 0; }
+    function nodeY(id) { const n = nodeById.get(id); return n ? (n._y || 0) : 0; }
+
+    function linkPath(d) {
+      const sid = typeof d.source === 'object' ? d.source.id : d.source;
+      const tid = typeof d.target === 'object' ? d.target.id : d.target;
+      const sx = nodeX(sid), sy = nodeY(sid), tx = nodeX(tid), ty = nodeY(tid);
+      if (sid === tid) {
+        const r = LOOP_BASE + d._loopIdx * LOOP_INCREMENT;
+        return `M ${sx},${sy} C ${sx + r},${sy - r} ${sx + r * 2},${sy} ${sx},${sy}`;
+      }
+      if (d._curvature === 0) return `M ${sx},${sy} L ${tx},${ty}`;
+      const dx = tx - sx, dy = ty - sy;
+      const len = Math.hypot(dx, dy) || 1;
+      const cpx = (sx + tx) / 2 - (dy / len) * d._curvature;
+      const cpy = (sy + ty) / 2 + (dx / len) * d._curvature;
+      return `M ${sx},${sy} Q ${cpx},${cpy} ${tx},${ty}`;
+    }
+
+    function linkMidpoint(d) {
+      const sid = typeof d.source === 'object' ? d.source.id : d.source;
+      const tid = typeof d.target === 'object' ? d.target.id : d.target;
+      const sx = nodeX(sid), sy = nodeY(sid), tx = nodeX(tid), ty = nodeY(tid);
+      if (sid === tid) { const r = LOOP_BASE + d._loopIdx * LOOP_INCREMENT; return { x: sx + r, y: sy - r }; }
+      if (d._curvature === 0) return { x: (sx + tx) / 2, y: (sy + ty) / 2 };
+      const dx = tx - sx, dy = ty - sy;
+      const len = Math.hypot(dx, dy) || 1;
+      const cpx = (sx + tx) / 2 - (dy / len) * d._curvature;
+      const cpy = (sy + ty) / 2 + (dx / len) * d._curvature;
+      return { x: (sx + 2 * cpx + tx) / 4, y: (sy + 2 * cpy + ty) / 4 };
+    }
+
+    function placeAll() {
+      linkSel.attr('d', linkPath);
+      linkLabelSel.attr('x', (d) => linkMidpoint(d).x).attr('y', (d) => linkMidpoint(d).y);
+      nodeSel.attr('transform', (d) => `translate(${d._x || 0},${d._y || 0})`);
+    }
+
+    placeAll();
+
+    // Auto-fit.
+    (function autoFit() {
+      if (rawNodes.length === 0) return;
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      rawNodes.forEach((n) => {
+        if ((n._x || 0) < minX) minX = n._x || 0;
+        if ((n._y || 0) < minY) minY = n._y || 0;
+        if ((n._x || 0) > maxX) maxX = n._x || 0;
+        if ((n._y || 0) > maxY) maxY = n._y || 0;
+      });
+      const gW = maxX - minX + RANK_SEP;
+      const gH = maxY - minY + NODE_SEP;
+      const OUTER_PAD = 60;
+      const scale = Math.min(1, (width - 2 * OUTER_PAD) / (gW || 1), (height - 2 * OUTER_PAD) / (gH || 1));
+      const tx = width  / 2 - scale * (minX + maxX) / 2;
+      const ty = height / 2 - scale * (minY + maxY) / 2;
+      svg.call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
+    }());
+
+    /* ── Tooltip ────────────────────────────────────────────────────────── */
+    const tooltipEl = document.getElementById('tooltip');
+
+    nodeSel
+      .on('mouseover', (event, d) => {
+        const originLabel = ORIGIN_LABEL[d._origin] || 'Imported';
+        tooltipEl.innerHTML =
+          '<p><dt>Label</dt><dd>' + escHtml(d.label || '') + '</dd></p>' +
+          '<p><dt>Type</dt><dd>'  + escHtml(d.type  || '') + '</dd></p>' +
+          '<p><dt>Origin</dt><dd>' + escHtml(originLabel) + '</dd></p>' +
+          (d._namespace ? '<p><dt>Namespace</dt><dd>' + escHtml(d._namespace) + '</dd></p>' : '') +
+          (d.group && d.type !== 'union' ? '<p><dt>Lane</dt><dd>' + escHtml(d.group) + '</dd></p>' : '') +
+          '<p><dt>IRI</dt><dd>'   + escHtml(d.id    || '') + '</dd></p>' +
+          '<p><dt>Rank</dt><dd>'  + (rank.get(d.id) || 0) + '</dd></p>';
+        tooltipEl.classList.add('visible');
+        moveTooltip(event);
+      })
+      .on('mousemove', moveTooltip)
+      .on('mouseleave', () => tooltipEl.classList.remove('visible'));
+
+    function moveTooltip(event) {
+      tooltipEl.style.left = (event.clientX + 14) + 'px';
+      tooltipEl.style.top  = (event.clientY + 14) + 'px';
+    }
+
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    /* ── Search / filter ────────────────────────────────────────────────── */
+    document.getElementById('search').addEventListener('input', function () {
+      const q = this.value.trim().toLowerCase();
+      if (!q) {
+        nodeSel.classed('faded', false).classed('highlighted', false);
+        linkSel.classed('faded', false);
+        linkLabelSel.classed('faded', false);
+        return;
+      }
+      const matchedIDs = new Set(
+        rawNodes.filter((d) => (d.label || d.id).toLowerCase().includes(q)).map((d) => d.id)
+      );
+      nodeSel
+        .classed('highlighted', (d) => matchedIDs.has(d.id))
+        .classed('faded', (d) => !matchedIDs.has(d.id));
+      linkSel.classed('faded', (d) => {
+        const sid = typeof d.source === 'object' ? d.source.id : d.source;
+        const tid = typeof d.target === 'object' ? d.target.id : d.target;
+        return !matchedIDs.has(sid) && !matchedIDs.has(tid);
+      });
+      linkLabelSel.classed('faded', (d) => {
+        const sid = typeof d.source === 'object' ? d.source.id : d.source;
+        const tid = typeof d.target === 'object' ? d.target.id : d.target;
+        return !matchedIDs.has(sid) && !matchedIDs.has(tid);
+      });
+    });
+
+    /* ── Responsive resize ──────────────────────────────────────────────── */
+    if (typeof ResizeObserver !== 'undefined') {
+      new ResizeObserver(function () {
+        const dims = getDims();
+        width  = dims.width;
+        height = dims.height;
+      }).observe(graphContainer);
+    }
+
+  }());
+  </script>
+</body>
+</html>

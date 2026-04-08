@@ -1,0 +1,62 @@
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix wf:   <https://example.org/workflow#> .
+
+# --- States / Steps ---
+
+wf:Submission a rdfs:Class ;
+  rdfs:label "Submission" .
+
+wf:Review a rdfs:Class ;
+  rdfs:label "Review" .
+
+wf:Clarification a rdfs:Class ;
+  rdfs:label "Clarification" .
+
+wf:Corrections a rdfs:Class ;
+  rdfs:label "Corrections" .
+
+wf:Gate a rdfs:Class ;
+  rdfs:label "Gate" .
+
+wf:Approved a rdfs:Class ;
+  rdfs:label "Approved" .
+
+# --- Forward transitions ---
+
+wf:toReview rdf:type rdf:Property ;
+  rdfs:label "to review" ;
+  rdfs:domain wf:Submission ;
+  rdfs:range  wf:Review .
+
+wf:toClarification rdf:type rdf:Property ;
+  rdfs:label "needs clarification" ;
+  rdfs:domain wf:Review ;
+  rdfs:range  wf:Clarification .
+
+wf:toCorrections rdf:type rdf:Property ;
+  rdfs:label "needs corrections" ;
+  rdfs:domain wf:Review ;
+  rdfs:range  wf:Corrections .
+
+wf:toGate rdf:type rdf:Property ;
+  rdfs:label "to gate" ;
+  rdfs:domain wf:Review ;
+  rdfs:range  wf:Gate .
+
+wf:approved rdf:type rdf:Property ;
+  rdfs:label "approved" ;
+  rdfs:domain wf:Gate ;
+  rdfs:range  wf:Approved .
+
+# --- Return loops ---
+
+wf:backToReviewFromClarification rdf:type rdf:Property ;
+  rdfs:label "resubmit" ;
+  rdfs:domain wf:Clarification ;
+  rdfs:range  wf:Review .
+
+wf:backToReviewFromCorrections rdf:type rdf:Property ;
+  rdfs:label "resubmit" ;
+  rdfs:domain wf:Corrections ;
+  rdfs:range  wf:Review .

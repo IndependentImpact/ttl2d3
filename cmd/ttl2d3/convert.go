@@ -55,6 +55,8 @@ self-contained HTML; use --output json for a standalone D3 JSON object.`,
 				"linkDistance", cfg.LinkDistance,
 				"chargeStrength", cfg.ChargeStrength,
 				"collideRadius", cfg.CollideRadius,
+				"layout", cfg.Layout,
+				"layoutDirection", cfg.LayoutDirection,
 			)
 
 			return runConvert(cfg)
@@ -70,6 +72,10 @@ self-contained HTML; use --output json for a standalone D3 JSON object.`,
 	f.Float64Var(&cfg.LinkDistance, "link-distance", cfg.LinkDistance, "D3 force link distance")
 	f.Float64Var(&cfg.ChargeStrength, "charge-strength", cfg.ChargeStrength, "D3 many-body charge strength")
 	f.Float64Var(&cfg.CollideRadius, "collide-radius", cfg.CollideRadius, "D3 collision-detection radius")
+	f.StringVar((*string)(&cfg.Layout), "layout", string(config.LayoutForce), "HTML layout mode: force, layered, swimlane (HTML output only)")
+	f.StringVar((*string)(&cfg.LayoutDirection), "layout-direction", string(config.LayoutDirectionLR), "Flow direction for layered/swimlane: lr (left-to-right) or tb (top-to-bottom)")
+	f.Float64Var(&cfg.RankSeparation, "rank-separation", cfg.RankSeparation, "Pixel gap between ranks in layered/swimlane layout")
+	f.Float64Var(&cfg.NodeSeparation, "node-separation", cfg.NodeSeparation, "Pixel gap between nodes within a rank in layered/swimlane layout")
 
 	return cmd
 }
@@ -173,9 +179,13 @@ func runConvert(cfg config.Config) (retErr error) {
 		}
 	default: // config.OutputHTML
 		opts := render.HTMLOptions{
-			LinkDistance:   cfg.LinkDistance,
-			ChargeStrength: cfg.ChargeStrength,
-			CollideRadius:  cfg.CollideRadius,
+			LinkDistance:    cfg.LinkDistance,
+			ChargeStrength:  cfg.ChargeStrength,
+			CollideRadius:   cfg.CollideRadius,
+			Layout:          render.LayoutMode(cfg.Layout),
+			LayoutDirection: render.LayoutDirection(cfg.LayoutDirection),
+			RankSeparation:  cfg.RankSeparation,
+			NodeSeparation:  cfg.NodeSeparation,
 		}
 		if err := render.RenderHTML(gm, opts, w); err != nil {
 			return fmt.Errorf("convert: rendering HTML: %w", err)

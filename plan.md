@@ -217,6 +217,41 @@ Progress legend: ✅ Done · 🔄 In progress · ⬜ Not started
 
 ---
 
+## Phase 17 – Workflow-Oriented Layouts ✅
+
+**Goal:** Add readable non-force HTML layouts for sequential process RDF while
+preserving backward compatibility.
+
+- [x] 17.1 Extend `internal/config/config.go`
+  - add `Layout LayoutMode` (force|layered|swimlane)
+  - add `LayoutDirection LayoutDirection` (lr|tb)
+  - add `RankSeparation float64` (default 180)
+  - add `NodeSeparation float64` (default 80)
+  - validate: layout applies only to HTML; invalid values rejected
+- [x] 17.2 Extend CLI in `cmd/ttl2d3/convert.go`
+  - add `--layout`, `--layout-direction`, `--rank-separation`, `--node-separation`
+  - pass new opts to `render.HTMLOptions`
+- [x] 17.3 Add `Layout`/`LayoutDirection`/separation fields to `render.HTMLOptions`
+  - preserve existing defaults; force layout unchanged
+- [x] 17.4 Create `internal/render/templates/graph_layered.html`
+  - deterministic longest-path rank assignment
+  - DFS back-edge detection and dashed orange styling
+  - fixed coordinate placement (no force simulation)
+  - auto-fit zoom on load; zoom/pan/search/tooltip preserved
+- [x] 17.5 Create `internal/render/templates/graph_swimlane.html`
+  - lane assignment by node `group` (namespace prefix)
+  - SVG lane bands (rect + text headers)
+  - reuses layered rank assignment for x-axis
+  - zoom/pan/search/tooltip preserved
+- [x] 17.6 Add `testdata/workflow.ttl` workflow fixture
+  - forward transitions, approval gate, clarification/corrections loops
+- [x] 17.7 Update `internal/config/config_test.go` with layout validation tests
+- [x] 17.8 Update `internal/render/html_test.go` with layered/swimlane tests + golden files
+- [x] 17.9 Update `README.md`, `spec.md`, `plan.md`
+- [x] 17.10 Run: lint + vet + build + test; commit
+
+---
+
 ## Decisions Log
 
 | Date       | Decision | Rationale |
@@ -228,6 +263,8 @@ Progress legend: ✅ Done · 🔄 In progress · ⬜ Not started
 | 2026-03-25 | Use `html/template` (stdlib) for HTML generation | Automatic HTML escaping prevents XSS; zero extra dependency |
 | 2026-03-25 | D3 v7 via CDN | Keeps generated HTML small; v7 is current stable |
 | 2026-03-25 | `log/slog` for logging | Go stdlib since 1.21; structured logging without extra deps |
+| 2026-04-08 | Keep workflow layouts inside D3/HTML renderer | Minimizes rework; preserves parser, transform, JSON schema, and self-contained HTML architecture |
+| 2026-04-08 | Swimlane lanes keyed by node `group` (namespace prefix) | Generic, works for any RDF without domain-specific annotation; override via explicit `group` field |
 
 ---
 
@@ -239,3 +276,5 @@ Progress legend: ✅ Done · 🔄 In progress · ⬜ Not started
 | D3 force layout instability for large graphs | Medium | Medium | Expose tunable parameters; document recommended settings |
 | CDN unavailability in offline environments | Low | Medium | Document `--cdn-url` override flag (Phase 11+) |
 | Breaking changes in dependencies | Low | Low | Pin exact versions in `go.sum`; dependabot alerts |
+| Layered ranking on cyclic workflow graphs | Medium | Medium | Back-edge detection via DFS; cycles excluded from primary rank assignment |
+| Swimlane semantics may be ambiguous from generic RDF | Low | Low | Lane grouping by `group` field is generic; swimlane is opt-in via `--layout swimlane` |

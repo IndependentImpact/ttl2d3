@@ -2,15 +2,15 @@
 
 **Version:** 0.1.0-draft  
 **Status:** Draft  
-**Last updated:** 2026-03-25
+**Last updated:** 2026-04-08
 
 ---
 
 ## 1. Purpose and Goals
 
 `ttl2d3` is a command-line tool written in Go that converts semantic-web
-ontologies and concept schemes into interactive D3.js force-directed graph
-visualisations.
+ontologies and concept schemes into interactive D3.js visualisations, including
+force-directed and workflow-oriented layouts.
 
 ### Primary Goals
 1. Accept ontology / concept-scheme input in common semantic-web formats.
@@ -64,6 +64,12 @@ primitives:
 The output graph JSON follows the D3 force-directed graph convention:
 `{ nodes: [...], links: [...] }`.
 
+The `layered` layout uses deterministic longest-path ranking and fixed SVG
+coordinates instead of physics simulation.  The `swimlane` layout extends
+the layered approach with lane bands (SVG `rect` + text labels) grouped by
+node `group` (namespace prefix).  Both non-force layouts use D3 utilities
+(zoom, symbol, select) but not `d3-force`.
+
 ---
 
 ## 3. Functional Requirements
@@ -107,13 +113,18 @@ The output graph JSON follows the D3 force-directed graph convention:
 | OH-01 | Write a single self-contained HTML file with all CSS and JS inlined. |
 | OH-02 | Load D3 v7 from `https://cdn.jsdelivr.net/npm/d3@7` (CDN). |
 | OH-03 | Embed the graph JSON inline in a `<script>` block. |
-| OH-04 | Render a D3 force-directed graph with zoom, pan, and drag. |
+| OH-04 | Render an interactive D3 visualisation in the selected layout mode. |
+| OH-04a| Support `force` layout mode with zoom, pan, and drag (default). |
+| OH-04b| Support `layered` layout mode for workflow/state-transition visualisation. |
+| OH-04c| Support `swimlane` layout mode for process-style visualisation. |
 | OH-05 | Node colour and shape encode entity type (class=circle, property=diamond, instance=square). |
 | OH-06 | Hovering a node shows a tooltip with its IRI, label, and type. |
 | OH-07 | Include a visible legend. |
 | OH-08 | SVG is responsive (percentage-based width, viewport-relative height). |
 | OH-09 | Provide a search/filter input box to highlight nodes by label substring. |
 | OH-10 | Show origin (local vs imported) and namespace legend derived from node IRIs. |
+| OH-11 | Non-force layout output must be deterministic for identical input. |
+| OH-12 | Back-edges and loop edges must be visually distinct in non-force layouts. |
 
 ### 3.5 CLI Interface
 ```
@@ -122,18 +133,26 @@ ttl2d3 convert [flags]   (default sub-command)
 ttl2d3 version
 ```
 
-| Flag                  | Short | Default      | Description                              |
-|-----------------------|-------|--------------|------------------------------------------|
-| `--input`             | `-i`  | *(required)* | Input file path or `-` for stdin         |
-| `--output`            | `-o`  | `html`       | Output format: `html` or `json`          |
-| `--out`               | `-O`  | stdout       | Output file path                         |
-| `--format`            | `-f`  | auto-detect  | Input format override                    |
-| `--title`             |       | ontology IRI | Title shown in HTML output               |
-| `--link-distance`     |       | `80`         | D3 link distance                         |
-| `--charge-strength`   |       | `-300`       | D3 charge strength                       |
-| `--collide-radius`    |       | `20`         | D3 collide radius                        |
-| `--verbose`           | `-v`  | false        | Enable debug logging                     |
-| `--help`              | `-h`  | —            | Show help                                |
+| Flag                    | Short | Default      | Description                                          |
+|-------------------------|-------|--------------|------------------------------------------------------|
+| `--input`               | `-i`  | *(required)* | Input file path or `-` for stdin                     |
+| `--output`              | `-o`  | `html`       | Output format: `html` or `json`                      |
+| `--out`                 | `-O`  | stdout       | Output file path                                     |
+| `--format`              | `-f`  | auto-detect  | Input format override                                |
+| `--title`               |       | ontology IRI | Title shown in HTML output                           |
+| `--layout`              |       | `force`      | HTML layout mode: `force`, `layered`, `swimlane`     |
+| `--layout-direction`    |       | `lr`         | Flow direction: `lr` (left-to-right) or `tb` (top-to-bottom) |
+| `--rank-separation`     |       | `180`        | Pixel gap between ranks (layered/swimlane)           |
+| `--node-separation`     |       | `80`         | Pixel gap between nodes within a rank (layered/swimlane) |
+| `--link-distance`       |       | `80`         | D3 link distance (force only)                        |
+| `--charge-strength`     |       | `-300`       | D3 charge strength (force only)                      |
+| `--collide-radius`      |       | `20`         | D3 collide radius (force only)                       |
+| `--verbose`             | `-v`  | false        | Enable debug logging                                 |
+| `--help`                | `-h`  | —            | Show help                                            |
+
+Validation:
+* `--layout` applies only to HTML output; combining it with `--output json` is an error.
+* Invalid `--layout`, `--layout-direction` values are rejected with a clear error message.
 
 ### 3.6 Versioning
 * `ttl2d3 version` prints the version string, Git commit SHA, and build date.
@@ -152,6 +171,8 @@ ttl2d3 version
 | NF-06 | Usability       | `--help` output is self-explanatory; no manual required for basic usage. |
 | NF-07 | Security        | No shell injection; validate and sanitise all IRI strings before HTML output. |
 | NF-08 | Accessibility   | Generated HTML meets WCAG 2.1 AA colour-contrast requirements. |
+| NF-09 | Determinism     | Non-force layouts must produce stable output coordinates for identical input. |
+| NF-10 | Readability     | Workflow-oriented layouts should materially reduce overlap and visual ambiguity for sequential process graphs. |
 
 ---
 
@@ -185,6 +206,9 @@ ttl2d3 version
          │  ┌────────────┐│
          │  │  json.go   ││
          │  │  html.go   ││
+         │  │  templates/││  graph.html (force)
+         │  │            ││  graph_layered.html
+         │  │            ││  graph_swimlane.html
          │  └────────────┘│
          └────────────────┘
 ```
@@ -275,9 +299,9 @@ Golden-file tests compare render output against checked-in expected files in
 ## 10. Future Work (Post-v1)
 
 * SPARQL endpoint output (write a SPARQL query to extract subgraphs).
-* Hierarchical (tree) layout mode for pure taxonomies.
 * Plugin / template system for custom HTML themes.
 * Watch mode (`--watch`) to regenerate on file change.
+* `--lane-by` strategy for swimlane (currently uses `group`/namespace prefix).
 * WASM build for in-browser usage.
 
 ---
