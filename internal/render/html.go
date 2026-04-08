@@ -9,47 +9,20 @@ import (
 	"io"
 
 	"github.com/IndependentImpact/ttl2d3/internal/graph"
+	"github.com/IndependentImpact/ttl2d3/internal/transform"
 )
 
 //go:embed templates/graph.html
 var rawHTMLTemplate string
 
-//go:embed templates/graph_layered.html
-var rawHTMLLayeredTemplate string
-
-//go:embed templates/graph_swimlane.html
-var rawHTMLSwimlaneTemplate string
+//go:embed templates/graph_workflowplan.html
+var rawHTMLWorkflowPlanTemplate string
 
 // htmlTmpl is the compiled HTML template for force layout, parsed once at package initialisation.
 var htmlTmpl = template.Must(template.New("graph").Parse(rawHTMLTemplate))
 
-// htmlLayeredTmpl is the compiled HTML template for layered layout.
-var htmlLayeredTmpl = template.Must(template.New("graph_layered").Parse(rawHTMLLayeredTemplate))
-
-// htmlSwimlaneTmpl is the compiled HTML template for swimlane layout.
-var htmlSwimlaneTmpl = template.Must(template.New("graph_swimlane").Parse(rawHTMLSwimlaneTemplate))
-
-// LayoutMode selects the HTML rendering layout.
-type LayoutMode string
-
-const (
-	// LayoutForce is the existing D3 force-directed layout (default).
-	LayoutForce LayoutMode = "force"
-	// LayoutLayered is a deterministic layered layout for workflow graphs.
-	LayoutLayered LayoutMode = "layered"
-	// LayoutSwimlane is a swimlane process layout.
-	LayoutSwimlane LayoutMode = "swimlane"
-)
-
-// LayoutDirection controls the primary flow axis for layered/swimlane layouts.
-type LayoutDirection string
-
-const (
-	// LayoutDirectionLR flows left-to-right (default).
-	LayoutDirectionLR LayoutDirection = "lr"
-	// LayoutDirectionTB flows top-to-bottom.
-	LayoutDirectionTB LayoutDirection = "tb"
-)
+// htmlWorkflowPlanTmpl is the compiled HTML template for the WorkflowPlan directed process diagram.
+var htmlWorkflowPlanTmpl = template.Must(template.New("graph_workflowplan").Parse(rawHTMLWorkflowPlanTemplate))
 
 // HTMLOptions configures the HTML renderer.
 type HTMLOptions struct {
@@ -62,40 +35,25 @@ type HTMLOptions struct {
 	ChargeStrength float64
 	// CollideRadius is the D3 collision-detection radius (default 20).
 	CollideRadius float64
-	// Layout selects the rendering mode (force, layered, swimlane). Default: force.
-	Layout LayoutMode
-	// LayoutDirection controls the primary flow axis for layered/swimlane layouts.
-	LayoutDirection LayoutDirection
-	// RankSeparation is the pixel gap between ranks in layered/swimlane layouts.
-	RankSeparation float64
-	// NodeSeparation is the pixel gap between nodes within a rank.
-	NodeSeparation float64
 }
 
 // DefaultHTMLOptions returns HTMLOptions populated with the default values from
 // the spec (§3.5).
 func DefaultHTMLOptions() HTMLOptions {
 	return HTMLOptions{
-		LinkDistance:    80,
-		ChargeStrength:  -300,
-		CollideRadius:   20,
-		Layout:          LayoutForce,
-		LayoutDirection: LayoutDirectionLR,
-		RankSeparation:  180,
-		NodeSeparation:  80,
+		LinkDistance:   80,
+		ChargeStrength: -300,
+		CollideRadius:  20,
 	}
 }
 
 // templateData is the value passed to graph.html during template execution.
 type templateData struct {
-	Title           string
-	GraphJSON       template.JS
-	LinkDistance    float64
-	ChargeStrength  float64
-	CollideRadius   float64
-	LayoutDirection string
-	RankSeparation  float64
-	NodeSeparation  float64
+	Title          string
+	GraphJSON      template.JS
+	LinkDistance   float64
+	ChargeStrength float64
+	CollideRadius  float64
 }
 
 // RenderHTML serialises gm as a self-contained HTML page and writes it to w.
@@ -110,8 +68,6 @@ type templateData struct {
 //   - Visible legend (OH-07)
 //   - Responsive SVG (OH-08)
 //   - Search/filter input box (OH-09)
-//   - Deterministic output for non-force layouts (OH-11)
-//   - Back-edges visually distinct in non-force layouts (OH-12)
 //
 // If opts.LinkDistance, opts.ChargeStrength, or opts.CollideRadius are zero the
 // values from DefaultHTMLOptions are used.
@@ -130,18 +86,6 @@ func RenderHTML(gm *graph.GraphModel, opts HTMLOptions, w io.Writer) error {
 	}
 	if opts.CollideRadius == 0 {
 		opts.CollideRadius = defaults.CollideRadius
-	}
-	if opts.Layout == "" {
-		opts.Layout = defaults.Layout
-	}
-	if opts.LayoutDirection == "" {
-		opts.LayoutDirection = defaults.LayoutDirection
-	}
-	if opts.RankSeparation == 0 {
-		opts.RankSeparation = defaults.RankSeparation
-	}
-	if opts.NodeSeparation == 0 {
-		opts.NodeSeparation = defaults.NodeSeparation
 	}
 
 	// Resolve page title.
@@ -168,28 +112,48 @@ func RenderHTML(gm *graph.GraphModel, opts HTMLOptions, w io.Writer) error {
 		Title: title,
 		// template.JS marks the value as safe JavaScript; the content is the
 		// JSON output from RenderJSON which always HTML-escapes string values.
-		GraphJSON:       template.JS(jsonBuf.String()), //nolint:gosec // JSON encoder escapes < > &
-		LinkDistance:    opts.LinkDistance,
-		ChargeStrength:  opts.ChargeStrength,
-		CollideRadius:   opts.CollideRadius,
-		LayoutDirection: string(opts.LayoutDirection),
-		RankSeparation:  opts.RankSeparation,
-		NodeSeparation:  opts.NodeSeparation,
+		GraphJSON:      template.JS(jsonBuf.String()), //nolint:gosec // JSON encoder escapes < > &
+		LinkDistance:   opts.LinkDistance,
+		ChargeStrength: opts.ChargeStrength,
+		CollideRadius:  opts.CollideRadius,
 	}
 
-	// Select template based on layout mode.
-	var tmpl *template.Template
-	switch opts.Layout {
-	case LayoutLayered:
-		tmpl = htmlLayeredTmpl
-	case LayoutSwimlane:
-		tmpl = htmlSwimlaneTmpl
-	default:
-		tmpl = htmlTmpl
-	}
-
-	if err := tmpl.Execute(w, data); err != nil {
+	if err := htmlTmpl.Execute(w, data); err != nil {
 		return fmt.Errorf("render: executing HTML template: %w", err)
+	}
+	return nil
+}
+
+// workflowPlanTemplateData is the value passed to graph_workflowplan.html.
+type workflowPlanTemplateData struct {
+	Title string
+	Plans template.JS // JSON-encoded []transform.WorkflowPlan
+}
+
+// RenderWorkflowPlan renders an indimp:WorkflowPlan model as a self-contained
+// directed process / swimlane HTML page and writes it to w.
+func RenderWorkflowPlan(wm *transform.WorkflowModel, title string, w io.Writer) error {
+	if wm == nil {
+		return errors.New("render: WorkflowModel is nil")
+	}
+
+	if title == "" {
+		title = "ttl2d3 Workflow Plan"
+	}
+
+	// Serialise the workflow model to JSON for inline embedding.
+	var jsonBuf bytes.Buffer
+	if err := renderWorkflowModelJSON(wm, &jsonBuf); err != nil {
+		return fmt.Errorf("render: serialising workflow model to JSON: %w", err)
+	}
+
+	data := workflowPlanTemplateData{
+		Title: title,
+		Plans: template.JS(jsonBuf.String()), //nolint:gosec // JSON encoder escapes < > &
+	}
+
+	if err := htmlWorkflowPlanTmpl.Execute(w, data); err != nil {
+		return fmt.Errorf("render: executing workflow plan HTML template: %w", err)
 	}
 	return nil
 }

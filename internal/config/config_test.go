@@ -21,17 +21,8 @@ func TestDefaultConfig(t *testing.T) {
 	if c.CollideRadius != 20 {
 		t.Errorf("default CollideRadius = %g, want 20", c.CollideRadius)
 	}
-	if c.Layout != config.LayoutForce {
-		t.Errorf("default Layout = %q, want %q", c.Layout, config.LayoutForce)
-	}
-	if c.LayoutDirection != config.LayoutDirectionLR {
-		t.Errorf("default LayoutDirection = %q, want %q", c.LayoutDirection, config.LayoutDirectionLR)
-	}
-	if c.RankSeparation <= 0 {
-		t.Errorf("default RankSeparation = %g, want positive", c.RankSeparation)
-	}
-	if c.NodeSeparation <= 0 {
-		t.Errorf("default NodeSeparation = %g, want positive", c.NodeSeparation)
+	if c.WorkflowPlan != false {
+		t.Error("default WorkflowPlan should be false")
 	}
 }
 
@@ -39,15 +30,11 @@ func TestValidate(t *testing.T) {
 	// validBase returns a minimally valid Config; tests override individual fields.
 	validBase := func() config.Config {
 		return config.Config{
-			Input:           "file.ttl",
-			Output:          config.OutputHTML,
-			LinkDistance:    80,
-			ChargeStrength:  -300,
-			CollideRadius:   20,
-			Layout:          config.LayoutForce,
-			LayoutDirection: config.LayoutDirectionLR,
-			RankSeparation:  180,
-			NodeSeparation:  80,
+			Input:          "file.ttl",
+			Output:         config.OutputHTML,
+			LinkDistance:   80,
+			ChargeStrength: -300,
+			CollideRadius:  20,
 		}
 	}
 
@@ -115,90 +102,22 @@ func TestValidate(t *testing.T) {
 			}(),
 			wantErr: true,
 		},
-		// Layout-specific tests.
+		// WorkflowPlan-specific tests.
 		{
-			name: "valid layered layout",
+			name: "workflowplan valid html",
 			cfg: func() config.Config {
 				c := validBase()
-				c.Layout = config.LayoutLayered
+				c.WorkflowPlan = true
 				return c
 			}(),
 			wantErr: false,
 		},
 		{
-			name: "valid swimlane layout",
-			cfg: func() config.Config {
-				c := validBase()
-				c.Layout = config.LayoutSwimlane
-				return c
-			}(),
-			wantErr: false,
-		},
-		{
-			name: "invalid layout mode",
-			cfg: func() config.Config {
-				c := validBase()
-				c.Layout = config.LayoutMode("bpmn")
-				return c
-			}(),
-			wantErr: true,
-		},
-		{
-			name: "layered layout rejected for json output",
+			name: "workflowplan rejected for json output",
 			cfg: func() config.Config {
 				c := validBase()
 				c.Output = config.OutputJSON
-				c.Layout = config.LayoutLayered
-				return c
-			}(),
-			wantErr: true,
-		},
-		{
-			name: "swimlane layout rejected for json output",
-			cfg: func() config.Config {
-				c := validBase()
-				c.Output = config.OutputJSON
-				c.Layout = config.LayoutSwimlane
-				return c
-			}(),
-			wantErr: true,
-		},
-		{
-			name: "valid tb direction",
-			cfg: func() config.Config {
-				c := validBase()
-				c.Layout = config.LayoutLayered
-				c.LayoutDirection = config.LayoutDirectionTB
-				return c
-			}(),
-			wantErr: false,
-		},
-		{
-			name: "invalid layout direction",
-			cfg: func() config.Config {
-				c := validBase()
-				c.Layout = config.LayoutLayered
-				c.LayoutDirection = config.LayoutDirection("rl")
-				return c
-			}(),
-			wantErr: true,
-		},
-		{
-			name: "zero rank separation",
-			cfg: func() config.Config {
-				c := validBase()
-				c.Layout = config.LayoutLayered
-				c.RankSeparation = 0
-				return c
-			}(),
-			wantErr: true,
-		},
-		{
-			name: "zero node separation",
-			cfg: func() config.Config {
-				c := validBase()
-				c.Layout = config.LayoutLayered
-				c.NodeSeparation = 0
+				c.WorkflowPlan = true
 				return c
 			}(),
 			wantErr: true,

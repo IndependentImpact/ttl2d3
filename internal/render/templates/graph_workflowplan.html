@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{.Title}}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f8f9fa;
+      color: #212529;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Toolbar ──────────────────────────────────────────────────── */
+    #toolbar {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      padding: .5rem 1rem;
+      background: #343a40;
+      color: #f8f9fa;
+      flex-shrink: 0;
+    }
+    #toolbar h1 { font-size: 1rem; font-weight: 600; flex: 1; }
+    #toolbar .badge {
+      font-size: .7rem;
+      background: #6c757d;
+      border-radius: 4px;
+      padding: 2px 6px;
+      color: #fff;
+    }
+    #search {
+      padding: .3rem .6rem;
+      border: none;
+      border-radius: 4px;
+      font-size: .85rem;
+      min-width: 200px;
+    }
+
+    /* ── Main canvas ──────────────────────────────────────────────── */
+    #canvas { flex: 1; overflow: auto; position: relative; }
+    #diagram-wrap { padding: 24px; min-width: max-content; }
+
+    /* ── Plan container ───────────────────────────────────────────── */
+    .plan { margin-bottom: 48px; }
+    .plan-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: #343a40;
+    }
+
+    /* ── Swimlane table ───────────────────────────────────────────── */
+    .swimlane-table {
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    .lane-header {
+      background: #495057;
+      color: #fff;
+      font-size: .8rem;
+      font-weight: 600;
+      text-align: center;
+      padding: 6px 12px;
+      border: 1px solid #6c757d;
+      min-width: 140px;
+      width: 140px;
+    }
+    .lane-cell {
+      border: 1px solid #dee2e6;
+      background: #fff;
+      padding: 12px 8px;
+      vertical-align: top;
+      min-width: 140px;
+      width: 140px;
+    }
+    .lane-cell:nth-child(even) { background: #f8f9fa; }
+
+    /* ── Step node ────────────────────────────────────────────────── */
+    .step-node {
+      background: #1a6bbf;
+      color: #fff;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: .8rem;
+      font-weight: 500;
+      text-align: center;
+      cursor: default;
+      position: relative;
+      margin: 4px auto;
+      max-width: 120px;
+      word-break: break-word;
+      box-shadow: 0 1px 3px rgba(0,0,0,.2);
+      transition: box-shadow .15s;
+    }
+    .step-node:hover { box-shadow: 0 3px 8px rgba(0,0,0,.3); }
+    .step-node.highlighted { outline: 3px solid #ffd700; outline-offset: 2px; }
+    .step-node.faded { opacity: .3; }
+
+    /* ── Arrow row (SVG connectors between columns) ───────────────── */
+    .arrow-row td { padding: 0; border: none; }
+    .arrow-svg { overflow: visible; display: block; }
+
+    /* ── Tooltip ──────────────────────────────────────────────────── */
+    #tooltip {
+      position: fixed;
+      background: rgba(33,37,41,.92);
+      color: #f8f9fa;
+      border-radius: 6px;
+      padding: .5rem .75rem;
+      font-size: .8rem;
+      pointer-events: none;
+      display: none;
+      max-width: 320px;
+      z-index: 100;
+      line-height: 1.5;
+    }
+    #tooltip strong { display: block; margin-bottom: 2px; }
+
+    /* ── No-data message ─────────────────────────────────────────── */
+    .no-data {
+      padding: 40px;
+      color: #6c757d;
+      text-align: center;
+      font-size: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+<div id="toolbar">
+  <h1>{{.Title}}</h1>
+  <span class="badge">workflow plan</span>
+  <input id="search" type="search" placeholder="Search steps…" />
+</div>
+
+<div id="canvas">
+  <div id="diagram-wrap" role="main">
+    <!-- Diagrams injected by JavaScript -->
+  </div>
+</div>
+
+<div id="tooltip" role="tooltip"></div>
+
+<script>
+/* ===================================================================
+   WorkflowPlan directed-process / swimlane visualiser
+   =================================================================== */
+
+const PLANS = {{.Plans}};
+
+// ── Utility ──────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ── Topological sort (Kahn's algorithm) ──────────────────────────────
+function topoSort(steps, transitions) {
+  const ids = steps.map(s => s.id);
+  const idSet = new Set(ids);
+
+  const inDeg = {};
+  const adj = {};
+  ids.forEach(id => { inDeg[id] = 0; adj[id] = []; });
+
+  transitions.forEach(tr => {
+    if (idSet.has(tr.from) && idSet.has(tr.to)) {
+      adj[tr.from].push(tr.to);
+      inDeg[tr.to] = (inDeg[tr.to] || 0) + 1;
+    }
+  });
+
+  const queue = ids.filter(id => inDeg[id] === 0).sort();
+  const order = [];
+  while (queue.length > 0) {
+    queue.sort();
+    const n = queue.shift();
+    order.push(n);
+    (adj[n] || []).forEach(m => {
+      inDeg[m]--;
+      if (inDeg[m] === 0) queue.push(m);
+    });
+  }
+  // Append any remaining nodes (cycles).
+  ids.forEach(id => { if (!order.includes(id)) order.push(id); });
+  return order;
+}
+
+// ── Assign column ranks via longest-path ────────────────────────────
+function assignColumns(steps, transitions) {
+  const ids = steps.map(s => s.id);
+  const idSet = new Set(ids);
+  const order = topoSort(steps, transitions);
+
+  const rank = {};
+  ids.forEach(id => { rank[id] = 0; });
+
+  order.forEach(n => {
+    transitions.forEach(tr => {
+      if (tr.from === n && idSet.has(tr.to)) {
+        if (rank[tr.to] < rank[n] + 1) {
+          rank[tr.to] = rank[n] + 1;
+        }
+      }
+    });
+  });
+  return rank;
+}
+
+// ── Build swimlane actor list ────────────────────────────────────────
+function actors(steps) {
+  const seen = new Set();
+  const list = [];
+  steps.forEach(s => {
+    const a = s.actor || '(unassigned)';
+    if (!seen.has(a)) { seen.add(a); list.push(a); }
+  });
+  return list.length > 0 ? list : ['(unassigned)'];
+}
+
+// ── Render a single plan ─────────────────────────────────────────────
+function renderPlan(plan, wrap) {
+  const container = document.createElement('div');
+  container.className = 'plan';
+
+  if (plan.label) {
+    const title = document.createElement('div');
+    title.className = 'plan-title';
+    title.textContent = plan.label;
+    container.appendChild(title);
+  }
+
+  const steps = plan.steps || [];
+  const transitions = plan.transitions || [];
+
+  if (steps.length === 0) {
+    const msg = document.createElement('p');
+    msg.className = 'no-data';
+    msg.textContent = 'No steps found in this workflow plan.';
+    container.appendChild(msg);
+    wrap.appendChild(container);
+    return;
+  }
+
+  const rank = assignColumns(steps, transitions);
+  const maxRank = Math.max(...Object.values(rank));
+  const laneList = actors(steps);
+  const hasSwimlanes = steps.some(s => s.actor);
+
+  // Build a map: actor → rank → [steps]
+  const grid = {};
+  laneList.forEach(a => {
+    grid[a] = {};
+    for (let r = 0; r <= maxRank; r++) grid[a][r] = [];
+  });
+  steps.forEach(s => {
+    const a = s.actor || '(unassigned)';
+    const r = rank[s.id] ?? 0;
+    if (!grid[a]) grid[a] = {};
+    if (!grid[a][r]) grid[a][r] = [];
+    grid[a][r].push(s);
+  });
+
+  // ── Build HTML table ───────────────────────────────────────────────
+  const tbl = document.createElement('table');
+  tbl.className = 'swimlane-table';
+
+  // Step ID → DOM element for tooltip / search.
+  const nodeEls = {};
+
+  if (hasSwimlanes) {
+    // Header row with column ranks.
+    const headerRow = tbl.insertRow();
+    const actorTh = document.createElement('th');
+    actorTh.className = 'lane-header';
+    actorTh.textContent = 'Actor / Role';
+    headerRow.appendChild(actorTh);
+    for (let r = 0; r <= maxRank; r++) {
+      const th = document.createElement('th');
+      th.className = 'lane-header';
+      th.textContent = 'Step ' + (r + 1);
+      headerRow.appendChild(th);
+    }
+
+    laneList.forEach(actor => {
+      const row = tbl.insertRow();
+      const actorCell = row.insertCell();
+      actorCell.className = 'lane-cell';
+      actorCell.style.background = '#495057';
+      actorCell.style.color = '#fff';
+      actorCell.style.fontWeight = '600';
+      actorCell.style.fontSize = '.8rem';
+      actorCell.style.textAlign = 'center';
+      actorCell.textContent = actor;
+
+      for (let r = 0; r <= maxRank; r++) {
+        const cell = row.insertCell();
+        cell.className = 'lane-cell';
+        (grid[actor][r] || []).forEach(s => {
+          const node = makeStepNode(s, nodeEls);
+          cell.appendChild(node);
+        });
+      }
+    });
+  } else {
+    // No actors — single-row process flow.
+    const row = tbl.insertRow();
+    for (let r = 0; r <= maxRank; r++) {
+      const cell = row.insertCell();
+      cell.className = 'lane-cell';
+      // All steps at this rank (regardless of actor).
+      steps.filter(s => (rank[s.id] ?? 0) === r).forEach(s => {
+        cell.appendChild(makeStepNode(s, nodeEls));
+      });
+    }
+  }
+
+  container.appendChild(tbl);
+
+  // ── SVG arrows overlay ─────────────────────────────────────────────
+  // Render arrows after the table is in the DOM so we can measure positions.
+  wrap.appendChild(container);
+  drawArrows(tbl, transitions, nodeEls, rank, maxRank);
+}
+
+// ── Create a step-node element ────────────────────────────────────────
+function makeStepNode(step, nodeEls) {
+  const el = document.createElement('div');
+  el.className = 'step-node';
+  // Generate a safe DOM id from the IRI using encodeURIComponent to handle
+  // Unicode characters that btoa() cannot process.
+  el.id = 'step-' + encodeURIComponent(step.id).replace(/[^A-Za-z0-9_-]/g, '_');
+  el.dataset.iri = step.id;
+  el.dataset.label = step.label;
+  el.textContent = step.label || step.id;
+  nodeEls[step.id] = el;
+
+  // Tooltip.
+  el.addEventListener('mouseenter', e => showTooltip(e, step));
+  el.addEventListener('mousemove', e => moveTooltip(e));
+  el.addEventListener('mouseleave', hideTooltip);
+  return el;
+}
+
+// ── SVG arrow drawing ─────────────────────────────────────────────────
+function drawArrows(tbl, transitions, nodeEls, rank, maxRank) {
+  if (transitions.length === 0) return;
+
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.style.position = 'absolute';
+  svg.style.top = '0';
+  svg.style.left = '0';
+  svg.style.pointerEvents = 'none';
+  svg.style.overflow = 'visible';
+
+  const defs = document.createElementNS(svgNS, 'defs');
+  // Normal arrowhead.
+  const marker = document.createElementNS(svgNS, 'marker');
+  marker.setAttribute('id', 'arrow');
+  marker.setAttribute('markerWidth', '8');
+  marker.setAttribute('markerHeight', '8');
+  marker.setAttribute('refX', '6');
+  marker.setAttribute('refY', '3');
+  marker.setAttribute('orient', 'auto');
+  const path = document.createElementNS(svgNS, 'path');
+  path.setAttribute('d', 'M0,0 L0,6 L8,3 z');
+  path.setAttribute('fill', '#495057');
+  marker.appendChild(path);
+  defs.appendChild(marker);
+
+  // Back-edge arrowhead (orange).
+  const markerBack = document.createElementNS(svgNS, 'marker');
+  markerBack.setAttribute('id', 'arrow-back');
+  markerBack.setAttribute('markerWidth', '8');
+  markerBack.setAttribute('markerHeight', '8');
+  markerBack.setAttribute('refX', '6');
+  markerBack.setAttribute('refY', '3');
+  markerBack.setAttribute('orient', 'auto');
+  const pathBack = document.createElementNS(svgNS, 'path');
+  pathBack.setAttribute('d', 'M0,0 L0,6 L8,3 z');
+  pathBack.setAttribute('fill', '#e07b00');
+  markerBack.appendChild(pathBack);
+  defs.appendChild(markerBack);
+
+  svg.appendChild(defs);
+
+  const tblRect = tbl.getBoundingClientRect();
+  const wrapRect = tbl.parentElement.getBoundingClientRect();
+
+  transitions.forEach(tr => {
+    const fromEl = nodeEls[tr.from];
+    const toEl = nodeEls[tr.to];
+    if (!fromEl || !toEl) return;
+
+    const fr = fromEl.getBoundingClientRect();
+    const tr2 = toEl.getBoundingClientRect();
+
+    const x1 = fr.right - wrapRect.left;
+    const y1 = fr.top + fr.height / 2 - wrapRect.top;
+    const x2 = tr2.left - wrapRect.left;
+    const y2 = tr2.top + tr2.height / 2 - wrapRect.top;
+
+    const isBack = (rank[tr.from] ?? 0) >= (rank[tr.to] ?? 0);
+    const color = isBack ? '#e07b00' : '#495057';
+    const markerId = isBack ? 'arrow-back' : 'arrow';
+
+    const line = document.createElementNS(svgNS, 'path');
+    const cx = (x1 + x2) / 2;
+    const d = isBack
+      ? `M${x1},${y1} C${x1 + 40},${y1 - 40} ${x2 - 40},${y2 - 40} ${x2},${y2}`
+      : `M${x1},${y1} C${cx},${y1} ${cx},${y2} ${x2},${y2}`;
+    line.setAttribute('d', d);
+    line.setAttribute('fill', 'none');
+    line.setAttribute('stroke', color);
+    line.setAttribute('stroke-width', isBack ? '1.5' : '2');
+    line.setAttribute('stroke-dasharray', isBack ? '5,3' : 'none');
+    line.setAttribute('marker-end', `url(#${markerId})`);
+    svg.appendChild(line);
+
+    // Transition label (if present).
+    if (tr.label) {
+      const mx = (x1 + x2) / 2;
+      const my = (y1 + y2) / 2 - 8;
+      const txt = document.createElementNS(svgNS, 'text');
+      txt.setAttribute('x', mx);
+      txt.setAttribute('y', my);
+      txt.setAttribute('text-anchor', 'middle');
+      txt.setAttribute('font-size', '10');
+      txt.setAttribute('fill', color);
+      txt.textContent = tr.label;
+      svg.appendChild(txt);
+    }
+  });
+
+  // Position SVG over the table.
+  const wrap = tbl.parentElement;
+  wrap.style.position = 'relative';
+  svg.setAttribute('width', wrapRect.width);
+  svg.setAttribute('height', wrapRect.height);
+  wrap.appendChild(svg);
+}
+
+// ── Tooltip helpers ───────────────────────────────────────────────────
+const tooltip = document.getElementById('tooltip');
+
+function showTooltip(e, step) {
+  tooltip.innerHTML = `<strong>${esc(step.label || step.id)}</strong>` +
+    `<span style="color:#adb5bd">IRI: </span>${esc(step.id)}` +
+    (step.actor ? `<br><span style="color:#adb5bd">Actor: </span>${esc(step.actor)}` : '');
+  tooltip.style.display = 'block';
+  moveTooltip(e);
+}
+function moveTooltip(e) {
+  tooltip.style.left = (e.clientX + 14) + 'px';
+  tooltip.style.top  = (e.clientY + 14) + 'px';
+}
+function hideTooltip() { tooltip.style.display = 'none'; }
+
+// ── Search / filter ───────────────────────────────────────────────────
+document.getElementById('search').addEventListener('input', function () {
+  const q = this.value.trim().toLowerCase();
+  document.querySelectorAll('.step-node').forEach(el => {
+    const label = (el.dataset.label || '').toLowerCase();
+    const iri   = (el.dataset.iri || '').toLowerCase();
+    if (!q || label.includes(q) || iri.includes(q)) {
+      el.classList.remove('faded');
+      el.classList.toggle('highlighted', q.length > 0 && (label.includes(q) || iri.includes(q)));
+    } else {
+      el.classList.add('faded');
+      el.classList.remove('highlighted');
+    }
+  });
+});
+
+// ── Main: render all plans ────────────────────────────────────────────
+const wrap = document.getElementById('diagram-wrap');
+
+if (!PLANS || PLANS.length === 0) {
+  const msg = document.createElement('p');
+  msg.className = 'no-data';
+  msg.textContent =
+    'No indimp:WorkflowPlan resources were found in the input. ' +
+    'Use --workflowplan only with files that contain resources typed as indimp:WorkflowPlan.';
+  wrap.appendChild(msg);
+} else {
+  PLANS.forEach(plan => renderPlan(plan, wrap));
+}
+</script>
+</body>
+</html>
