@@ -67,6 +67,17 @@ type genericObjTriple struct {
 	subj, pred, obj string
 }
 
+// Options controls optional behaviours for [BuildGraphModel].
+type Options struct {
+	// Simplify enables simplified union rendering.  When true, owl:unionOf
+	// class expressions are not represented as explicit triangle union nodes;
+	// instead the originating object-property edge is repeated once for each
+	// member of the union, pointing directly from the domain (or range) class
+	// to each union-member class.  This produces a simpler graph that is
+	// easier to read as a map of possibilities.
+	Simplify bool
+}
+
 // BuildGraphModel converts an RDF triple store produced by one of the parsers
 // into a [graph.GraphModel] suitable for rendering.
 //
@@ -81,7 +92,13 @@ type genericObjTriple struct {
 //
 // Blank-node subjects and objects are silently ignored – they carry no stable
 // IRI identity and cannot be referenced from other resources.
-func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
+//
+// An optional [Options] value may be provided to control build behaviour.
+func BuildGraphModel(g *parser.Graph, opts ...Options) (*graph.GraphModel, error) {
+	var opt Options
+	if len(opts) > 0 {
+		opt = opts[0]
+	}
 	if g == nil {
 		return nil, fmt.Errorf("transform: input graph is nil")
 	}
@@ -370,10 +387,12 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 
 	unionNodeIDs := make(map[string]string, len(unionBlankNodes))
 	unionNodes := make([]graph.Node, 0, len(unionBlankNodes))
-	for blankID := range unionBlankNodes {
-		unionID := unionNodeID(blankID)
-		unionNodeIDs[blankID] = unionID
-		unionNodes = append(unionNodes, graph.NewNode(unionID, "union", graph.NodeTypeUnion, "owl"))
+	if !opt.Simplify {
+		for blankID := range unionBlankNodes {
+			unionID := unionNodeID(blankID)
+			unionNodeIDs[blankID] = unionID
+			unionNodes = append(unionNodes, graph.NewNode(unionID, "union", graph.NodeTypeUnion, "owl"))
+		}
 	}
 
 	// -----------------------------------------------------------------------
@@ -457,10 +476,22 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 				out = appendUnique(out, iri)
 			}
 		}
-		for _, blankID := range unionRefs {
-			if unionID, ok := unionNodeIDs[blankID]; ok {
-				if _, ok := nodeSet[unionID]; ok {
-					out = appendUnique(out, unionID)
+		if opt.Simplify {
+			// In simplified mode, expand union references directly to their
+			// member IRIs rather than routing through an intermediate union node.
+			for _, blankID := range unionRefs {
+				for _, memberIRI := range getUnionMembers(blankID) {
+					if _, ok := nodeSet[memberIRI]; ok {
+						out = appendUnique(out, memberIRI)
+					}
+				}
+			}
+		} else {
+			for _, blankID := range unionRefs {
+				if unionID, ok := unionNodeIDs[blankID]; ok {
+					if _, ok := nodeSet[unionID]; ok {
+						out = appendUnique(out, unionID)
+					}
 				}
 			}
 		}
@@ -559,11 +590,14 @@ func BuildGraphModel(g *parser.Graph) (*graph.GraphModel, error) {
 		}
 	}
 
-	// Emit union membership edges.
-	for blankID, unionID := range unionNodeIDs {
-		for _, member := range getUnionMembers(blankID) {
-			if _, ok := nodeSet[member]; ok {
-				addLink(unionID, member, "unionOf", iriOWLUnionOf)
+	// Emit union membership edges (only in standard mode; simplified mode
+	// routes edges directly from domain/range to union members instead).
+	if !opt.Simplify {
+		for blankID, unionID := range unionNodeIDs {
+			for _, member := range getUnionMembers(blankID) {
+				if _, ok := nodeSet[member]; ok {
+					addLink(unionID, member, "unionOf", iriOWLUnionOf)
+				}
 			}
 		}
 	}

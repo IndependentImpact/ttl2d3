@@ -55,6 +55,13 @@ type Config struct {
 	// the output is a directed process / swimlane diagram rather than the
 	// default force-directed network graph.  Applies to HTML output only.
 	WorkflowPlan bool
+	// Simplify enables simplified union rendering.  When true, owl:unionOf
+	// class expressions are not represented as explicit triangle union nodes;
+	// instead the originating object-property edge is repeated once for each
+	// member of the union, pointing directly from the domain (or range) class
+	// to each union-member class.  This produces a simpler graph that is
+	// easier to read as a map of possibilities.
+	Simplify bool
 }
 
 // DefaultConfig returns a Config populated with the default values from the spec.

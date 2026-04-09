@@ -1315,3 +1315,175 @@ ex:OtherClass a skos:Concept ;
 		t.Errorf("GraphModel.Validate() = %v", err)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// BuildGraphModel – simplified union rendering (Options.Simplify)
+// ---------------------------------------------------------------------------
+
+// TestBuildGraphModel_SimplifyUnionDomain verifies that when Options.Simplify
+// is true, owl:unionOf domain class expressions produce direct edges from each
+// union member to the range rather than routing through a triangle union node.
+func TestBuildGraphModel_SimplifyUnionDomain(t *testing.T) {
+const src = `
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix ex:   <http://example.org/union#> .
+
+ex:A a owl:Class .
+
+ex:relatedTo a owl:ObjectProperty ;
+    rdfs:label "related to" ;
+    rdfs:domain [ owl:unionOf ( ex:A ex:B ) ] ;
+    rdfs:range ex:C .
+`
+g := parseTurtle(t, src, "http://example.org/union")
+gm, err := transform.BuildGraphModel(g, transform.Options{Simplify: true})
+if err != nil {
+t.Fatalf("BuildGraphModel: %v", err)
+}
+
+const (
+iriA = "http://example.org/union#A"
+iriB = "http://example.org/union#B"
+iriC = "http://example.org/union#C"
+)
+
+// All member classes and the range must still exist as nodes.
+for _, iri := range []string{iriA, iriB, iriC} {
+if findNode(gm.Nodes, iri) == nil {
+t.Fatalf("expected node %q", iri)
+}
+}
+
+// No union node should be created in simplified mode.
+for _, n := range gm.Nodes {
+if n.Type == graph.NodeTypeUnion {
+t.Errorf("unexpected union node %q in simplified mode", n.ID)
+}
+}
+
+// Direct edges from each union member to the range must exist.
+if !hasLink(gm.Links, iriA, iriC, "related to") {
+t.Error("missing direct edge A → C (related to)")
+}
+if !hasLink(gm.Links, iriB, iriC, "related to") {
+t.Error("missing direct edge B → C (related to)")
+}
+
+// No unionOf edges should be present.
+for _, l := range gm.Links {
+if l.Label == "unionOf" {
+t.Errorf("unexpected unionOf edge %q → %q in simplified mode", l.Source, l.Target)
+}
+}
+
+if err := gm.Validate(); err != nil {
+t.Errorf("GraphModel.Validate() = %v", err)
+}
+}
+
+// TestBuildGraphModel_SimplifyUnionRange verifies that when Options.Simplify is
+// true, owl:unionOf range class expressions produce direct edges from the
+// domain to each union member rather than routing through a triangle union node.
+func TestBuildGraphModel_SimplifyUnionRange(t *testing.T) {
+const src = `
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix ex:   <http://example.org/union#> .
+
+ex:A a owl:Class .
+ex:B a owl:Class .
+
+ex:relatedTo a owl:ObjectProperty ;
+    rdfs:label "related to" ;
+    rdfs:domain ex:A ;
+    rdfs:range [ owl:unionOf ( ex:B ex:C ) ] .
+`
+g := parseTurtle(t, src, "http://example.org/union")
+gm, err := transform.BuildGraphModel(g, transform.Options{Simplify: true})
+if err != nil {
+t.Fatalf("BuildGraphModel: %v", err)
+}
+
+const (
+iriA = "http://example.org/union#A"
+iriB = "http://example.org/union#B"
+iriC = "http://example.org/union#C"
+)
+
+// All nodes must exist.
+for _, iri := range []string{iriA, iriB, iriC} {
+if findNode(gm.Nodes, iri) == nil {
+t.Fatalf("expected node %q", iri)
+}
+}
+
+// No union node in simplified mode.
+for _, n := range gm.Nodes {
+if n.Type == graph.NodeTypeUnion {
+t.Errorf("unexpected union node %q in simplified mode", n.ID)
+}
+}
+
+// Direct edges from the domain to each union member.
+if !hasLink(gm.Links, iriA, iriB, "related to") {
+t.Error("missing direct edge A → B (related to)")
+}
+if !hasLink(gm.Links, iriA, iriC, "related to") {
+t.Error("missing direct edge A → C (related to)")
+}
+
+// No unionOf edges.
+for _, l := range gm.Links {
+if l.Label == "unionOf" {
+t.Errorf("unexpected unionOf edge %q → %q in simplified mode", l.Source, l.Target)
+}
+}
+
+if err := gm.Validate(); err != nil {
+t.Errorf("GraphModel.Validate() = %v", err)
+}
+}
+
+// TestBuildGraphModel_SimplifyFalsePreservesUnionNode confirms that the default
+// (non-simplified) behaviour is unchanged when Options.Simplify is false.
+func TestBuildGraphModel_SimplifyFalsePreservesUnionNode(t *testing.T) {
+const src = `
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix ex:   <http://example.org/union#> .
+
+ex:A a owl:Class .
+
+ex:relatedTo a owl:ObjectProperty ;
+    rdfs:label "related to" ;
+    rdfs:domain [ owl:unionOf ( ex:A ex:B ) ] ;
+    rdfs:range ex:C .
+`
+g := parseTurtle(t, src, "http://example.org/union")
+gm, err := transform.BuildGraphModel(g, transform.Options{Simplify: false})
+if err != nil {
+t.Fatalf("BuildGraphModel: %v", err)
+}
+
+// A union node must exist.
+var unionID string
+for _, n := range gm.Nodes {
+if n.Type == graph.NodeTypeUnion {
+unionID = n.ID
+break
+}
+}
+if unionID == "" {
+t.Fatal("expected a union node when Simplify is false")
+}
+
+// Edge must go from union node to range, not directly from members.
+const iriC = "http://example.org/union#C"
+if !hasLink(gm.Links, unionID, iriC, "related to") {
+t.Error("expected edge union → C (related to)")
+}
+}
