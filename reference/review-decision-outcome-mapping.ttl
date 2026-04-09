@@ -1,0 +1,27 @@
+@prefix indimp: <https://independentimpact.org/ns/indimp#> .
+@prefix concept: <https://independentimpact.org/ns/concepts#> .
+@prefix map: <https://independentimpact.org/ns/mappings#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+
+map:DecisionOutcomeMappingScheme a skos:ConceptScheme ;
+  skos:prefLabel "Reviewer decision to outcome mapping"@en .
+
+map:DecisionOutcomeMappingApprove a indimp:DecisionOutcomeMapping ;
+  skos:inScheme map:DecisionOutcomeMappingScheme ;
+  indimp:decision concept:Approve ;
+  indimp:mapsOutcome concept:DocOutcomeApproved .
+
+map:DecisionOutcomeMappingReject a indimp:DecisionOutcomeMapping ;
+  skos:inScheme map:DecisionOutcomeMappingScheme ;
+  indimp:decision concept:Reject ;
+  indimp:mapsOutcome concept:DocOutcomeRejected .
+
+map:DecisionOutcomeMappingCorrections a indimp:DecisionOutcomeMapping ;
+  skos:inScheme map:DecisionOutcomeMappingScheme ;
+  indimp:decision concept:CorrectiveActionRequest ;
+  indimp:mapsOutcome concept:DocOutcomeCorrectionsRequested .
+
+map:DecisionOutcomeMappingClarification a indimp:DecisionOutcomeMapping ;
+  skos:inScheme map:DecisionOutcomeMappingScheme ;
+  indimp:decision concept:ForwardActionRequest ;
+  indimp:mapsOutcome concept:DocOutcomeClarificationRequested .
