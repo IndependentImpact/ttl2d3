@@ -36,27 +36,26 @@ func TestBuildWorkflowModel_NilGraph(t *testing.T) {
 }
 
 // TestBuildWorkflowModel_ExplicitPlan exercises a fully-annotated
-// indimp:WorkflowPlan with steps, actors, and Transition resources.
+// indimp:WorkflowPlan with steps and WorkflowTransition resources.
 func TestBuildWorkflowModel_ExplicitPlan(t *testing.T) {
 	const ttl = `
 @prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix indimp: <https://w3id.org/indimp#> .
+@prefix skos:   <http://www.w3.org/2004/02/skos/core#> .
+@prefix indimp: <https://independentimpact.org/ns/indimp#> .
 @prefix ex:     <https://example.org/> .
 
 ex:Plan a indimp:WorkflowPlan ;
     rdfs:label "My Plan" ;
-    indimp:hasStep ex:StepA, ex:StepB .
+    indimp:hasTransition ex:T1 .
 
-ex:StepA a indimp:Step ;
-    rdfs:label "Step A" ;
-    indimp:actor "Author" .
+ex:StepA a skos:Concept ;
+    rdfs:label "Step A" .
 
-ex:StepB a indimp:Step ;
-    rdfs:label "Step B" ;
-    indimp:actor "Reviewer" .
+ex:StepB a skos:Concept ;
+    rdfs:label "Step B" .
 
-ex:T1 a indimp:Transition ;
+ex:T1 a indimp:WorkflowTransition ;
     rdfs:label "next" ;
     indimp:fromStep ex:StepA ;
     indimp:toStep   ex:StepB .
@@ -83,14 +82,8 @@ ex:T1 a indimp:Transition ;
 	if plan.Steps[0].Label != "Step A" {
 		t.Errorf("steps[0].Label = %q, want %q", plan.Steps[0].Label, "Step A")
 	}
-	if plan.Steps[0].Actor != "Author" {
-		t.Errorf("steps[0].Actor = %q, want %q", plan.Steps[0].Actor, "Author")
-	}
 	if plan.Steps[1].Label != "Step B" {
 		t.Errorf("steps[1].Label = %q, want %q", plan.Steps[1].Label, "Step B")
-	}
-	if plan.Steps[1].Actor != "Reviewer" {
-		t.Errorf("steps[1].Actor = %q, want %q", plan.Steps[1].Actor, "Reviewer")
 	}
 
 	if len(plan.Transitions) != 1 {
@@ -109,19 +102,20 @@ ex:T1 a indimp:Transition ;
 }
 
 // TestBuildWorkflowModel_DirectToStep exercises steps with indimp:toStep
-// directly (no separate Transition resource).
+// directly (no separate WorkflowTransition resource).
 func TestBuildWorkflowModel_DirectToStep(t *testing.T) {
 	const ttl = `
 @prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix indimp: <https://w3id.org/indimp#> .
+@prefix skos:   <http://www.w3.org/2004/02/skos/core#> .
+@prefix indimp: <https://independentimpact.org/ns/indimp#> .
 @prefix ex:     <https://example.org/> .
 
-ex:StepA a indimp:Step ;
+ex:StepA a skos:Concept ;
     rdfs:label "Step A" ;
     indimp:toStep ex:StepB .
 
-ex:StepB a indimp:Step ;
+ex:StepB a skos:Concept ;
     rdfs:label "Step B" .
 `
 	g := parseWorkflowTurtle(t, ttl)
@@ -159,7 +153,7 @@ ex:A rdfs:label "Just a class" .
 }
 
 // TestBuildWorkflowModel_Workflowplan_Testdata exercises parsing the
-// testdata/workflowplan.ttl fixture.
+// testdata/workflowplan.ttl fixture (canonical indimp namespace).
 func TestBuildWorkflowModel_Workflowplan_Testdata(t *testing.T) {
 	g := parseWorkflowTurtle(t, workflowplanTTL)
 	wm, err := transform.BuildWorkflowModel(g)
@@ -178,33 +172,108 @@ func TestBuildWorkflowModel_Workflowplan_Testdata(t *testing.T) {
 	}
 }
 
+// TestBuildWorkflowModel_FromGate exercises a WorkflowTransition that uses
+// indimp:fromGate (gate node as source) instead of indimp:fromStep.
+func TestBuildWorkflowModel_FromGate(t *testing.T) {
+	const ttl = `
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos:   <http://www.w3.org/2004/02/skos/core#> .
+@prefix indimp: <https://independentimpact.org/ns/indimp#> .
+@prefix ex:     <https://example.org/> .
+
+ex:Plan a indimp:WorkflowPlan ;
+    rdfs:label "Gated Plan" ;
+    indimp:hasTransition ex:T1, ex:T2 ;
+    indimp:hasGate ex:Gate1 .
+
+ex:StepA a skos:Concept ; rdfs:label "Step A" .
+ex:StepB a skos:Concept ; rdfs:label "Step B" .
+ex:Gate1 a indimp:WorkflowGate ; rdfs:label "Approval Gate" .
+
+ex:T1 a indimp:WorkflowTransition ; rdfs:label "to gate" ;
+    indimp:fromStep ex:StepA ;
+    indimp:toStep   ex:Gate1 .
+
+ex:T2 a indimp:WorkflowTransition ; rdfs:label "proceed" ;
+    indimp:fromGate ex:Gate1 ;
+    indimp:toStep   ex:StepB .
+`
+	g := parseWorkflowTurtle(t, ttl)
+	wm, err := transform.BuildWorkflowModel(g)
+	if err != nil {
+		t.Fatalf("BuildWorkflowModel error = %v", err)
+	}
+	if len(wm.Plans) != 1 {
+		t.Fatalf("expected 1 plan, got %d", len(wm.Plans))
+	}
+	plan := wm.Plans[0]
+	if plan.Label != "Gated Plan" {
+		t.Errorf("plan.Label = %q, want %q", plan.Label, "Gated Plan")
+	}
+	// Expect 3 nodes: StepA, Gate1, StepB.
+	if len(plan.Steps) != 3 {
+		t.Fatalf("expected 3 steps/gates, got %d", len(plan.Steps))
+	}
+	if len(plan.Transitions) != 2 {
+		t.Fatalf("expected 2 transitions, got %d", len(plan.Transitions))
+	}
+	// Check that the gate node is present.
+	found := false
+	for _, s := range plan.Steps {
+		if strings.HasSuffix(s.ID, "Gate1") {
+			found = true
+			if s.Label != "Approval Gate" {
+				t.Errorf("gate label = %q, want %q", s.Label, "Approval Gate")
+			}
+		}
+	}
+	if !found {
+		t.Error("gate node Gate1 not found in plan steps")
+	}
+	// The fromGate transition should be present.
+	foundGateTr := false
+	for _, tr := range plan.Transitions {
+		if strings.HasSuffix(tr.From, "Gate1") && strings.HasSuffix(tr.To, "StepB") {
+			foundGateTr = true
+			if tr.Label != "proceed" {
+				t.Errorf("gate transition label = %q, want %q", tr.Label, "proceed")
+			}
+		}
+	}
+	if !foundGateTr {
+		t.Error("gate→StepB transition not found")
+	}
+}
+
 // workflowplanTTL is the content of testdata/workflowplan.ttl inlined for use
 // without a file-system dependency in the unit test.
 const workflowplanTTL = `
 @prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix indimp: <https://w3id.org/indimp#> .
+@prefix skos:   <http://www.w3.org/2004/02/skos/core#> .
+@prefix indimp: <https://independentimpact.org/ns/indimp#> .
 @prefix wfp:    <https://example.org/workflowplan#> .
 
 wfp:DocumentApprovalWorkflow
     a indimp:WorkflowPlan ;
     rdfs:label "Document Approval Workflow" ;
-    indimp:hasStep wfp:Submit, wfp:Review, wfp:Clarify, wfp:Approve, wfp:Reject .
+    indimp:hasTransition wfp:T1, wfp:T2, wfp:T3, wfp:T4, wfp:T5 .
 
-wfp:Submit a indimp:Step ; rdfs:label "Submit Document" ; indimp:actor "Author" .
-wfp:Review a indimp:Step ; rdfs:label "Review Document" ; indimp:actor "Reviewer" .
-wfp:Clarify a indimp:Step ; rdfs:label "Request Clarification" ; indimp:actor "Reviewer" .
-wfp:Approve a indimp:Step ; rdfs:label "Approve" ; indimp:actor "Manager" .
-wfp:Reject  a indimp:Step ; rdfs:label "Reject"  ; indimp:actor "Manager" .
+wfp:Submit  a skos:Concept ; rdfs:label "Submit Document" .
+wfp:Review  a skos:Concept ; rdfs:label "Review Document" .
+wfp:Clarify a skos:Concept ; rdfs:label "Request Clarification" .
+wfp:Approve a skos:Concept ; rdfs:label "Approve" .
+wfp:Reject  a skos:Concept ; rdfs:label "Reject" .
 
-wfp:T1 a indimp:Transition ; rdfs:label "submit" ;
+wfp:T1 a indimp:WorkflowTransition ; rdfs:label "submit" ;
     indimp:fromStep wfp:Submit ; indimp:toStep wfp:Review .
-wfp:T2 a indimp:Transition ; rdfs:label "needs clarification" ;
+wfp:T2 a indimp:WorkflowTransition ; rdfs:label "needs clarification" ;
     indimp:fromStep wfp:Review ; indimp:toStep wfp:Clarify .
-wfp:T3 a indimp:Transition ; rdfs:label "approved" ;
+wfp:T3 a indimp:WorkflowTransition ; rdfs:label "approved" ;
     indimp:fromStep wfp:Review ; indimp:toStep wfp:Approve .
-wfp:T4 a indimp:Transition ; rdfs:label "rejected" ;
+wfp:T4 a indimp:WorkflowTransition ; rdfs:label "rejected" ;
     indimp:fromStep wfp:Review ; indimp:toStep wfp:Reject .
-wfp:T5 a indimp:Transition ; rdfs:label "resubmit" ;
+wfp:T5 a indimp:WorkflowTransition ; rdfs:label "resubmit" ;
     indimp:fromStep wfp:Clarify ; indimp:toStep wfp:Review .
 `

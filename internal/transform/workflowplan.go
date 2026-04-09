@@ -6,14 +6,17 @@ import (
 	"github.com/IndependentImpact/ttl2d3/internal/parser"
 )
 
-// indimp namespace IRIs for the WorkflowPlan vocabulary.
+// indimp namespace IRIs for the WorkflowPlan vocabulary
+// (canonical: https://independentimpact.org/ns/indimp#).
 const (
-	iriIndImpWorkflowPlan = "https://w3id.org/indimp#WorkflowPlan" //nolint:gosec // IRI constant, not a credential
-	iriIndImpStep         = "https://w3id.org/indimp#Step"
-	iriIndImpHasStep      = "https://w3id.org/indimp#hasStep"
-	iriIndImpFromStep     = "https://w3id.org/indimp#fromStep"
-	iriIndImpToStep       = "https://w3id.org/indimp#toStep"
-	iriIndImpActor        = "https://w3id.org/indimp#actor"
+	iriIndImpWorkflowPlan       = "https://independentimpact.org/ns/indimp#WorkflowPlan"       //nolint:gosec // IRI constant, not a credential
+	iriIndImpWorkflowTransition = "https://independentimpact.org/ns/indimp#WorkflowTransition" //nolint:gosec
+	iriIndImpWorkflowGate       = "https://independentimpact.org/ns/indimp#WorkflowGate"       //nolint:gosec
+	iriIndImpHasTransition      = "https://independentimpact.org/ns/indimp#hasTransition"      //nolint:gosec
+	iriIndImpHasGate            = "https://independentimpact.org/ns/indimp#hasGate"            //nolint:gosec
+	iriIndImpFromStep           = "https://independentimpact.org/ns/indimp#fromStep"           //nolint:gosec
+	iriIndImpToStep             = "https://independentimpact.org/ns/indimp#toStep"             //nolint:gosec
+	iriIndImpFromGate           = "https://independentimpact.org/ns/indimp#fromGate"           //nolint:gosec
 )
 
 // WorkflowStep represents a single step in an indimp:WorkflowPlan.
@@ -62,11 +65,14 @@ type WorkflowModel struct {
 //
 // The algorithm:
 //  1. Scan triples for rdf:type == indimp:WorkflowPlan to find plan IRIs.
-//  2. Identify steps via indimp:hasStep on each plan, or via rdf:type ==
-//     indimp:Step, or via objects of indimp:fromStep / indimp:toStep triples.
-//  3. Identify transitions: resources with both indimp:fromStep and
-//     indimp:toStep triples, or steps carrying indimp:toStep directly.
-//  4. Attach rdfs:label and indimp:actor literals to steps and transitions.
+//  2. Identify steps via objects of indimp:fromStep or indimp:toStep on
+//     indimp:WorkflowTransition resources, and gate IRIs via indimp:fromGate.
+//  3. Identify transitions: resources with indimp:fromStep or indimp:fromGate
+//     combined with indimp:toStep.
+//  4. For explicit plans, derive step membership by following indimp:hasTransition
+//     to transition resources, then collecting their from/to endpoints; also
+//     include gates linked via indimp:hasGate.
+//  5. Attach rdfs:label literals to steps and transitions.
 func BuildWorkflowModel(g *parser.Graph) (*WorkflowModel, error) {
 	if g == nil {
 		return &WorkflowModel{}, nil
@@ -143,54 +149,53 @@ func BuildWorkflowModel(g *parser.Graph) (*WorkflowModel, error) {
 	planIRIs := sortedKeys(planSet)
 
 	// -----------------------------------------------------------------------
-	// Identify all step IRIs.
-	// Steps may be:
-	//   (a) declared with rdf:type indimp:Step, or
-	//   (b) referenced as objects of indimp:hasStep triples, or
-	//   (c) objects (values) of indimp:fromStep or indimp:toStep on a
-	//       Transition resource.
+	// Identify all node IRIs (steps and gates).
+	// Nodes may be:
+	//   (a) objects of indimp:fromStep or indimp:toStep on a
+	//       WorkflowTransition resource, or
+	//   (b) objects of indimp:fromGate on a WorkflowTransition resource
+	//       (WorkflowGate IRIs treated as step-like nodes), or
+	//   (c) objects of indimp:hasGate on a WorkflowPlan resource.
 	// -----------------------------------------------------------------------
-	stepSet := typeSet(iriIndImpStep)
+	stepSet := make(map[string]struct{})
 
-	// Objects of indimp:hasStep.
-	for _, preds := range subjPredToObjs {
-		for _, obj := range preds[iriIndImpHasStep] {
-			if obj != "" {
-				stepSet[obj] = struct{}{}
-			}
-		}
-	}
-
-	// Objects of indimp:fromStep and indimp:toStep on Transition resources.
-	// Note: we add the *objects* (step IRIs), not the subjects (transition IRIs).
+	// Objects of indimp:fromStep, indimp:toStep, and indimp:fromGate.
 	for subj, preds := range subjPredToObjs {
-		if froms, ok := preds[iriIndImpFromStep]; ok {
-			for _, fromStep := range froms {
-				if fromStep != "" {
-					stepSet[fromStep] = struct{}{}
-				}
-			}
-			for _, toStep := range preds[iriIndImpToStep] {
-				if toStep != "" {
-					stepSet[toStep] = struct{}{}
-				}
-			}
-			_ = subj // subj is the Transition IRI; do not add to stepSet
-		}
-	}
-	// Steps that carry indimp:toStep directly (no separate Transition resource).
-	for subj, preds := range subjPredToObjs {
-		if _, isTransition := preds[iriIndImpFromStep]; isTransition {
+		fromSteps := preds[iriIndImpFromStep]
+		fromGates := preds[iriIndImpFromGate]
+		toSteps := preds[iriIndImpToStep]
+		if len(fromSteps) == 0 && len(fromGates) == 0 && len(toSteps) == 0 {
 			continue
 		}
-		for _, toStep := range preds[iriIndImpToStep] {
-			if toStep != "" {
-				stepSet[toStep] = struct{}{}
+		for _, s := range fromSteps {
+			if s != "" {
+				stepSet[s] = struct{}{}
 			}
 		}
-		if _, hasToStep := preds[iriIndImpToStep]; hasToStep {
+		for _, g := range fromGates {
+			if g != "" {
+				stepSet[g] = struct{}{} // gates as step-like nodes
+			}
+		}
+		for _, s := range toSteps {
+			if s != "" {
+				stepSet[s] = struct{}{}
+			}
+		}
+		// Direct step→step: if the subject itself has toStep but no fromStep/fromGate,
+		// it is also a node.
+		if len(fromSteps) == 0 && len(fromGates) == 0 && len(toSteps) > 0 {
 			if subj != "" {
 				stepSet[subj] = struct{}{}
+			}
+		}
+	}
+
+	// Gate IRIs directly linked via indimp:hasGate on plans.
+	for planIRI := range planSet {
+		for _, g := range subjPredToObjs[planIRI][iriIndImpHasGate] {
+			if g != "" {
+				stepSet[g] = struct{}{}
 			}
 		}
 	}
@@ -202,25 +207,27 @@ func BuildWorkflowModel(g *parser.Graph) (*WorkflowModel, error) {
 	type transKey struct{ from, to string }
 	transLabels := make(map[transKey]string)
 
-	// Explicit Transition resources: have indimp:fromStep.
+	// Explicit Transition resources: have indimp:fromStep or indimp:fromGate.
 	for transSubj, preds := range subjPredToObjs {
-		fromSteps, hasFrm := preds[iriIndImpFromStep]
-		if !hasFrm {
+		fromSteps := preds[iriIndImpFromStep]
+		fromGates := preds[iriIndImpFromGate]
+		if len(fromSteps) == 0 && len(fromGates) == 0 {
 			continue
 		}
 		toSteps := preds[iriIndImpToStep]
-		for _, fromStep := range fromSteps {
+		allFroms := append(fromSteps, fromGates...) //nolint:gocritic // intentional append to new slice
+		for _, fromNode := range allFroms {
 			for _, toStep := range toSteps {
-				key := transKey{from: fromStep, to: toStep}
+				key := transKey{from: fromNode, to: toStep}
 				if _, exists := transLabels[key]; !exists {
 					transLabels[key] = labelOf(transSubj)
 				}
 			}
 		}
 	}
-	// Direct step→step: step has indimp:toStep but not indimp:fromStep.
+	// Direct step→step: step has indimp:toStep but no indimp:fromStep or indimp:fromGate.
 	for stepSubj, preds := range subjPredToObjs {
-		if _, isTransition := preds[iriIndImpFromStep]; isTransition {
+		if len(preds[iriIndImpFromStep]) > 0 || len(preds[iriIndImpFromGate]) > 0 {
 			continue
 		}
 		for _, toStep := range preds[iriIndImpToStep] {
@@ -252,10 +259,32 @@ func BuildWorkflowModel(g *parser.Graph) (*WorkflowModel, error) {
 			plan.Label = "Workflow"
 		}
 
-		// Steps: prefer explicit indimp:hasStep membership.
+		// Steps: prefer explicit membership derived from indimp:hasTransition.
+		// Follow each transition linked to the plan and collect its from/to endpoints.
 		var stepIRIs []string
 		if planIRI != "" {
-			stepIRIs = sortedUniq(subjPredToObjs[planIRI][iriIndImpHasStep])
+			transitionIRIs := sortedUniq(subjPredToObjs[planIRI][iriIndImpHasTransition])
+			if len(transitionIRIs) > 0 {
+				derived := make(map[string]struct{})
+				for _, tIRI := range transitionIRIs {
+					for _, s := range subjPredToObjs[tIRI][iriIndImpFromStep] {
+						if s != "" {
+							derived[s] = struct{}{}
+						}
+					}
+					for _, s := range subjPredToObjs[tIRI][iriIndImpToStep] {
+						if s != "" {
+							derived[s] = struct{}{}
+						}
+					}
+					for _, g := range subjPredToObjs[tIRI][iriIndImpFromGate] {
+						if g != "" {
+							derived[g] = struct{}{}
+						}
+					}
+				}
+				stepIRIs = sortedKeys(derived)
+			}
 		}
 		if len(stepIRIs) == 0 {
 			// Fall back to all known steps.
@@ -263,14 +292,9 @@ func BuildWorkflowModel(g *parser.Graph) (*WorkflowModel, error) {
 		}
 
 		for _, sid := range stepIRIs {
-			actor := ""
-			if m, ok := subjPredToLit[sid]; ok {
-				actor = m[iriIndImpActor]
-			}
 			plan.Steps = append(plan.Steps, WorkflowStep{
 				ID:    sid,
 				Label: labelOf(sid),
-				Actor: actor,
 			})
 		}
 
