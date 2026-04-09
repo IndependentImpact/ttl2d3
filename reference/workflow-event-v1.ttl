@@ -1,0 +1,446 @@
+@prefix indimp: <https://independentimpact.org/ns/indimp#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix aiao: <http://w3id.org/aiao#> .
+@prefix claimont: <http://w3id.org/claimont#> .
+@prefix impactont: <http://w3id.org/impactont#> .
+@prefix infocomm: <http://w3id.org/infocomm#> .
+@prefix hedera: <https://hashgraphontology.xyz/core/> .
+
+<https://independentimpact.org/ns/indimp/workflow-event-v1> a owl:Ontology ;
+  dcterms:title "Independent Impact Workflow Events v1"@en ;
+  dcterms:description "Vocabulary for HCS workflow events, plans, and status updates."@en ;
+  dcterms:creator "Independent Impact"@en ;
+  dcterms:issued "2026-03-03"^^xsd:date ;
+  dcterms:references <http://w3id.org/aiao> ;
+  dcterms:references <http://w3id.org/claimont> ;
+  dcterms:references <http://w3id.org/impactont> ;
+  dcterms:references <http://w3id.org/infocomm> .
+
+# Classes
+indimp:WorkflowEvent a owl:Class , aiao:Activity ;
+  rdfs:label "Workflow event"@en ;
+  rdfs:comment "Event posted to HCS that participates in workflow state derivation."@en .
+
+indimp:DocumentSubmitted a owl:Class ;
+  rdfs:subClassOf indimp:WorkflowEvent ;
+  rdfs:label "Document submitted"@en .
+
+indimp:ReviewSubmitted a owl:Class ;
+  rdfs:subClassOf indimp:WorkflowEvent ;
+  rdfs:label "Review submitted"@en .
+
+indimp:VoteCast a owl:Class ;
+  rdfs:subClassOf indimp:WorkflowEvent ;
+  rdfs:label "Vote cast"@en .
+
+indimp:RoleGranted a owl:Class ;
+  rdfs:subClassOf indimp:WorkflowEvent ;
+  rdfs:label "Role granted"@en .
+
+indimp:WorkflowPlanDeclared a owl:Class ;
+  rdfs:subClassOf indimp:WorkflowEvent ;
+  rdfs:label "Workflow plan declared"@en .
+
+indimp:WorkflowStatusUpdated a owl:Class ;
+  rdfs:subClassOf indimp:WorkflowEvent ;
+  rdfs:label "Workflow status updated"@en .
+
+indimp:WorkflowPlan a owl:Class , prov:Plan ;
+  rdfs:label "Workflow plan"@en ;
+  rdfs:comment "Declared plan defining contract(s), versions, and rules for a workflow phase."@en .
+
+indimp:WorkflowStatus a owl:Class , prov:Entity ;
+  rdfs:label "Workflow status"@en ;
+  rdfs:comment "Computed state snapshot derived from HCS events."@en .
+
+indimp:WorkflowTransition a owl:Class ;
+  rdfs:label "Workflow transition"@en ;
+  rdfs:comment "A transition from one workflow step to another, with a required outcome."@en .
+
+indimp:WorkflowGate a owl:Class ;
+  rdfs:label "Workflow gate"@en ;
+  rdfs:comment "A gate that becomes satisfied once all requirements are met."@en .
+
+indimp:GateRequirement a owl:Class ;
+  rdfs:label "Gate requirement"@en ;
+  rdfs:comment "A single requirement used by a workflow gate."@en .
+
+indimp:ContractSpec a owl:Class ;
+  rdfs:label "Contract specification"@en ;
+  rdfs:comment "Contract name, version, and address for a workflow plan."@en .
+
+indimp:DecisionOutcomeMapping a owl:Class ;
+  rdfs:label "Decision outcome mapping"@en ;
+  rdfs:comment "Mapping from reviewer decisions to derived document outcomes."@en .
+
+indimp:SemanticArtifactRelease a owl:Class ;
+  rdfs:label "Semantic artifact release"@en ;
+  rdfs:comment "Registry entry describing a versioned semantic artifact stored on IPFS."@en .
+
+indimp:ReducerCheckpoint a owl:Class ;
+  rdfs:label "Reducer checkpoint"@en ;
+  rdfs:comment "Checkpoint snapshot for deterministic replay and recovery."@en .
+
+indimp:VoteType a owl:Class , skos:Concept ;
+  rdfs:label "Vote type"@en .
+
+indimp:GrantType a owl:Class , skos:Concept ;
+  rdfs:label "Grant type"@en .
+
+indimp:Role a owl:Class , skos:Concept ;
+  rdfs:label "Role"@en .
+
+# Example controlled values
+indimp:VoteApprove a indimp:VoteType ;
+  rdfs:label "Approve"@en .
+
+indimp:VoteReject a indimp:VoteType ;
+  rdfs:label "Reject"@en .
+
+indimp:GrantLicense a indimp:GrantType ;
+  rdfs:label "License grant"@en .
+
+indimp:RoleValidator a indimp:Role ;
+  rdfs:label "Validator"@en .
+
+# Object properties
+indimp:eventType a owl:ObjectProperty ;
+  rdfs:domain indimp:WorkflowEvent ;
+  rdfs:range skos:Concept ;
+  rdfs:label "event type"@en .
+
+indimp:project a owl:ObjectProperty ;
+  rdfs:domain indimp:WorkflowEvent ;
+  rdfs:range rdfs:Resource ;
+  rdfs:label "project"@en .
+
+indimp:workflow a owl:ObjectProperty ;
+  rdfs:domain indimp:WorkflowEvent ;
+  rdfs:range rdfs:Resource ;
+  rdfs:label "workflow"@en .
+
+indimp:workflowPlan a owl:ObjectProperty ;
+  rdfs:domain indimp:WorkflowEvent ;
+  rdfs:range indimp:WorkflowPlan ;
+  rdfs:label "workflow plan"@en .
+
+indimp:hasTransition a owl:ObjectProperty ;
+  rdfs:domain indimp:WorkflowPlan ;
+  rdfs:range indimp:WorkflowTransition ;
+  rdfs:label "has transition"@en .
+
+indimp:hasGate a owl:ObjectProperty ;
+  rdfs:domain indimp:WorkflowPlan ;
+  rdfs:range indimp:WorkflowGate ;
+  rdfs:label "has gate"@en .
+
+indimp:workflowStep a owl:ObjectProperty ;
+  rdfs:domain [ owl:unionOf ( indimp:WorkflowEvent indimp:WorkflowStatus ) ] ;
+  rdfs:range skos:Concept ;
+  rdfs:label "workflow step"@en .
+
+indimp:fromStep a owl:ObjectProperty ;
+  rdfs:domain indimp:WorkflowTransition ;
+  rdfs:range skos:Concept ;
+  rdfs:label "from step"@en .
+
+indimp:fromGate a owl:ObjectProperty ;
+  rdfs:domain indimp:WorkflowTransition ;
+  rdfs:range indimp:WorkflowGate ;
+  rdfs:label "from gate"@en .
+
+indimp:toStep a owl:ObjectProperty ;
+  rdfs:domain indimp:WorkflowTransition ;
+  rdfs:range skos:Concept ;
+  rdfs:label "to step"@en .
+
+indimp:requiresOutcome a owl:ObjectProperty ;
+  rdfs:domain [ owl:unionOf ( indimp:WorkflowTransition indimp:GateRequirement ) ] ;
+  rdfs:range skos:Concept ;
+  rdfs:label "requires outcome"@en .
+
+indimp:requiresState a owl:ObjectProperty ;
+  rdfs:domain indimp:WorkflowTransition ;
+  rdfs:range skos:Concept ;
+  rdfs:label "requires state"@en .
+
+indimp:hasGateRequirement a owl:ObjectProperty ;
+  rdfs:domain indimp:WorkflowGate ;
+  rdfs:range indimp:GateRequirement ;
+  rdfs:label "has gate requirement"@en .
+
+indimp:gateStep a owl:ObjectProperty ;
+  rdfs:domain indimp:GateRequirement ;
+  rdfs:range skos:Concept ;
+  rdfs:label "gate step"@en .
+
+indimp:documentType a owl:ObjectProperty ;
+  rdfs:domain indimp:WorkflowEvent ;
+  rdfs:range skos:Concept ;
+  rdfs:label "document type"@en .
+
+indimp:reviewOf a owl:ObjectProperty ;
+  rdfs:domain indimp:ReviewSubmitted ;
+  rdfs:range rdfs:Resource ;
+  rdfs:label "review of"@en .
+
+indimp:outcome a owl:ObjectProperty ;
+  rdfs:domain [ owl:unionOf ( indimp:WorkflowStatus indimp:WorkflowEvent ) ] ;
+  rdfs:range skos:Concept ;
+  rdfs:label "outcome"@en ;
+  rdfs:comment "Derived outcome for a workflow status (e.g., APPROVED, REJECTED, REQUEST_CORRECTIONS)."@en .
+
+indimp:reviewDecision a owl:ObjectProperty ;
+  rdfs:domain indimp:ReviewSubmitted ;
+  rdfs:range skos:Concept ;
+  rdfs:label "review decision"@en ;
+  rdfs:comment "Reviewer decision concept (see reviewer-decision scheme)."@en .
+
+indimp:voteSubject a owl:ObjectProperty ;
+  rdfs:domain indimp:VoteCast ;
+  rdfs:range rdfs:Resource ;
+  rdfs:label "vote subject"@en .
+
+indimp:vote a owl:ObjectProperty ;
+  rdfs:domain indimp:VoteCast ;
+  rdfs:range indimp:VoteType ;
+  rdfs:label "vote"@en .
+
+indimp:role a owl:ObjectProperty ;
+  rdfs:domain indimp:RoleGranted ;
+  rdfs:range indimp:Role ;
+  rdfs:label "role"@en .
+
+indimp:subject a owl:ObjectProperty ;
+  rdfs:domain indimp:RoleGranted ;
+  rdfs:range rdfs:Resource ;
+  rdfs:label "subject"@en .
+
+indimp:grantType a owl:ObjectProperty ;
+  rdfs:domain indimp:RoleGranted ;
+  rdfs:range indimp:GrantType ;
+  rdfs:label "grant type"@en .
+
+indimp:decision a owl:ObjectProperty ;
+  rdfs:domain indimp:DecisionOutcomeMapping ;
+  rdfs:range skos:Concept ;
+  rdfs:label "decision"@en .
+
+indimp:mapsOutcome a owl:ObjectProperty ;
+  rdfs:domain indimp:DecisionOutcomeMapping ;
+  rdfs:range skos:Concept ;
+  rdfs:label "maps outcome"@en .
+
+indimp:contractSpec a owl:ObjectProperty ;
+  rdfs:domain indimp:WorkflowPlanDeclared ;
+  rdfs:range indimp:ContractSpec ;
+  rdfs:label "contract spec"@en .
+
+indimp:skipsStep a owl:ObjectProperty ;
+  rdfs:domain indimp:WorkflowTransition ;
+  rdfs:range skos:Concept ;
+  rdfs:label "skips step"@en ;
+  rdfs:comment "Indicates a workflow step that is explicitly skipped when this transition is taken."@en .
+
+indimp:newStatus a owl:ObjectProperty ;
+  rdfs:domain indimp:WorkflowStatusUpdated ;
+  rdfs:range indimp:WorkflowStatus ;
+  rdfs:label "new status"@en .
+
+indimp:state a owl:ObjectProperty ;
+  rdfs:domain indimp:WorkflowStatus ;
+  rdfs:range skos:Concept ;
+  rdfs:label "state"@en .
+
+# Data properties
+indimp:resourceIpfsUri a owl:DatatypeProperty ;
+  rdfs:domain indimp:WorkflowEvent ;
+  rdfs:range xsd:string ;
+  rdfs:label "resource IPFS URI"@en .
+
+indimp:hash a owl:DatatypeProperty ;
+  rdfs:domain indimp:WorkflowEvent ;
+  rdfs:range xsd:string ;
+  rdfs:label "content hash"@en .
+
+indimp:instanceId a owl:DatatypeProperty ;
+  rdfs:domain indimp:WorkflowEvent ;
+  rdfs:range xsd:string ;
+  rdfs:label "instance id"@en .
+
+indimp:isStartStep a owl:DatatypeProperty ;
+  rdfs:domain skos:Concept ;
+  rdfs:range xsd:boolean ;
+  rdfs:label "is start step"@en ;
+  rdfs:comment "Marks a workflow step that can start a workflow without inbound requirements."@en .
+
+indimp:planVersion a owl:DatatypeProperty ;
+  rdfs:domain [ owl:unionOf ( indimp:WorkflowPlan indimp:WorkflowPlanDeclared ) ] ;
+  rdfs:range xsd:string ;
+  rdfs:label "plan version"@en .
+
+indimp:contractName a owl:DatatypeProperty ;
+  rdfs:domain indimp:ContractSpec ;
+  rdfs:range xsd:string ;
+  rdfs:label "contract name"@en .
+
+indimp:contractVersion a owl:DatatypeProperty ;
+  rdfs:domain indimp:ContractSpec ;
+  rdfs:range xsd:string ;
+  rdfs:label "contract version"@en .
+
+indimp:contractAddress a owl:ObjectProperty ;
+  rdfs:domain indimp:ContractSpec ;
+  rdfs:range hedera:SmartContract ;
+  rdfs:label "contract address"@en .
+
+indimp:previousStatusRef a owl:DatatypeProperty ;
+  rdfs:domain indimp:WorkflowStatusUpdated ;
+  rdfs:range xsd:string ;
+  rdfs:label "previous status reference"@en .
+
+indimp:inputEventRef a owl:DatatypeProperty ;
+  rdfs:domain indimp:WorkflowStatusUpdated ;
+  rdfs:range xsd:string ;
+  rdfs:label "input event reference"@en .
+
+indimp:ruleRef a owl:DatatypeProperty ;
+  rdfs:domain indimp:WorkflowStatusUpdated ;
+  rdfs:range xsd:string ;
+  rdfs:label "rule reference"@en .
+
+indimp:artifactName a owl:DatatypeProperty ;
+  rdfs:domain indimp:SemanticArtifactRelease ;
+  rdfs:range xsd:string ;
+  rdfs:label "artifact name"@en .
+
+indimp:artifactType a owl:DatatypeProperty ;
+  rdfs:domain indimp:SemanticArtifactRelease ;
+  rdfs:range xsd:string ;
+  rdfs:label "artifact type"@en .
+
+indimp:artifactVersion a owl:DatatypeProperty ;
+  rdfs:domain indimp:SemanticArtifactRelease ;
+  rdfs:range xsd:string ;
+  rdfs:label "artifact version"@en .
+
+indimp:releaseTimestamp a owl:DatatypeProperty ;
+  rdfs:domain indimp:SemanticArtifactRelease ;
+  rdfs:range xsd:dateTime ;
+  rdfs:label "release timestamp"@en .
+
+indimp:ipfsCid a owl:DatatypeProperty ;
+  rdfs:domain indimp:SemanticArtifactRelease ;
+  rdfs:range xsd:string ;
+  rdfs:label "IPFS CID"@en .
+
+indimp:mediaType a owl:DatatypeProperty ;
+  rdfs:domain indimp:SemanticArtifactRelease ;
+  rdfs:range xsd:string ;
+  rdfs:label "media type"@en .
+
+indimp:contentHash a owl:DatatypeProperty ;
+  rdfs:domain indimp:SemanticArtifactRelease ;
+  rdfs:range xsd:string ;
+  rdfs:label "content hash"@en .
+
+indimp:checkpointTopicId a owl:DatatypeProperty ;
+  rdfs:domain indimp:ReducerCheckpoint ;
+  rdfs:range xsd:string ;
+  rdfs:label "checkpoint topic id"@en .
+
+indimp:checkpointSequenceNumber a owl:DatatypeProperty ;
+  rdfs:domain indimp:ReducerCheckpoint ;
+  rdfs:range xsd:integer ;
+  rdfs:label "checkpoint sequence number"@en .
+
+indimp:checkpointConsensusTimestamp a owl:DatatypeProperty ;
+  rdfs:domain indimp:ReducerCheckpoint ;
+  rdfs:range xsd:dateTime ;
+  rdfs:label "checkpoint consensus timestamp"@en .
+
+indimp:checkpointStateHash a owl:DatatypeProperty ;
+  rdfs:domain indimp:ReducerCheckpoint ;
+  rdfs:range xsd:string ;
+  rdfs:label "checkpoint state hash"@en .
+
+indimp:checkpointState a owl:DatatypeProperty ;
+  rdfs:domain indimp:ReducerCheckpoint ;
+  rdfs:range xsd:string ;
+  rdfs:label "checkpoint state"@en .
+
+indimp:checkpointTopic a owl:ObjectProperty ;
+  rdfs:domain indimp:ReducerCheckpoint ;
+  rdfs:range hedera:ConsensusTopic ;
+  rdfs:label "checkpoint topic"@en .
+
+indimp:checkpointMessage a owl:ObjectProperty ;
+  rdfs:domain indimp:ReducerCheckpoint ;
+  rdfs:range hedera:TopicMessage ;
+  rdfs:label "checkpoint message"@en .
+
+indimp:hcsTopicId a owl:DatatypeProperty ;
+  rdfs:domain hedera:ConsensusTopic ;
+  rdfs:range xsd:string ;
+  rdfs:label "HCS topic id"@en ;
+  rdfs:subPropertyOf hedera:hasTopicId .
+
+indimp:hcsConsensusTimestamp a owl:DatatypeProperty ;
+  rdfs:domain hedera:TopicMessage ;
+  rdfs:range xsd:dateTime ;
+  rdfs:label "HCS consensus timestamp"@en ;
+  rdfs:subPropertyOf hedera:hasConsensusTimestamp .
+
+indimp:hcsSequenceNumber a owl:DatatypeProperty ;
+  rdfs:domain hedera:TopicMessage ;
+  rdfs:range xsd:integer ;
+  rdfs:label "HCS sequence number"@en ;
+  rdfs:subPropertyOf hedera:hasSequenceNumber .
+
+indimp:hcsMessageSize a owl:DatatypeProperty ;
+  rdfs:domain hedera:TopicMessage ;
+  rdfs:range xsd:integer ;
+  rdfs:label "HCS message size"@en ;
+  rdfs:subPropertyOf hedera:hasMessageSize .
+
+indimp:hcsRunningHash a owl:DatatypeProperty ;
+  rdfs:domain hedera:TopicMessage ;
+  rdfs:range xsd:string ;
+  rdfs:label "HCS running hash"@en .
+
+indimp:hcsRunningHashVersion a owl:DatatypeProperty ;
+  rdfs:domain hedera:TopicMessage ;
+  rdfs:range xsd:integer ;
+  rdfs:label "HCS running hash version"@en .
+
+indimp:hcsPayerAccountId a owl:DatatypeProperty ;
+  rdfs:domain hedera:TopicMessage ;
+  rdfs:range xsd:string ;
+  rdfs:label "HCS payer account id"@en .
+
+indimp:hcsMessageRef a owl:ObjectProperty ;
+  rdfs:domain indimp:WorkflowEvent ;
+  rdfs:range hedera:TopicMessage ;
+  rdfs:label "HCS message reference"@en ;
+  rdfs:comment "Reference to a Hedera Consensus Service topic message (hashgraph ontology)."@en .
+
+indimp:htsTokenRef a owl:ObjectProperty ;
+  rdfs:domain indimp:WorkflowEvent ;
+  rdfs:range hedera:Token ;
+  rdfs:label "HTS token reference"@en ;
+  rdfs:comment "Reference to a Hedera Token Service token."@en .
+
+indimp:voteWeight a owl:DatatypeProperty ;
+  rdfs:domain indimp:VoteCast ;
+  rdfs:range xsd:integer ;
+  rdfs:label "vote weight"@en .
+
+indimp:grantRef a owl:DatatypeProperty ;
+  rdfs:domain indimp:RoleGranted ;
+  rdfs:range xsd:string ;
+  rdfs:label "grant reference"@en .
