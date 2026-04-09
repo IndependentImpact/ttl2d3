@@ -56,6 +56,7 @@ self-contained HTML; use --output json for a standalone D3 JSON object.`,
 				"chargeStrength", cfg.ChargeStrength,
 				"collideRadius", cfg.CollideRadius,
 				"workflowPlan", cfg.WorkflowPlan,
+				"nodeSpacing", cfg.NodeSpacing,
 				"simplify", cfg.Simplify,
 			)
 
@@ -73,6 +74,7 @@ self-contained HTML; use --output json for a standalone D3 JSON object.`,
 	f.Float64Var(&cfg.ChargeStrength, "charge-strength", cfg.ChargeStrength, "D3 many-body charge strength")
 	f.Float64Var(&cfg.CollideRadius, "collide-radius", cfg.CollideRadius, "D3 collision-detection radius")
 	f.BoolVar(&cfg.WorkflowPlan, "workflowplan", false, "Render indimp:WorkflowPlan resources as a directed process / swimlane diagram (HTML output only)")
+	f.Float64Var(&cfg.NodeSpacing, "node-spacing", cfg.NodeSpacing, "Column width in pixels for --workflowplan swimlane table (increase to avoid overprinting)")
 	f.BoolVar(&cfg.Simplify, "simplify", false, "Render owl:unionOf as repeated direct edges instead of a triangle union node")
 
 	return cmd
@@ -190,7 +192,10 @@ func runConvert(cfg config.Config) (retErr error) {
 			if title == "" {
 				title = gm.Metadata.BaseIRI
 			}
-			if err := render.RenderWorkflowPlan(wm, title, w); err != nil {
+			wopts := render.WorkflowPlanOptions{
+				NodeSpacing: cfg.NodeSpacing,
+			}
+			if err := render.RenderWorkflowPlan(wm, title, wopts, w); err != nil {
 				return fmt.Errorf("convert: rendering workflow plan: %w", err)
 			}
 		} else {

@@ -55,6 +55,10 @@ type Config struct {
 	// the output is a directed process / swimlane diagram rather than the
 	// default force-directed network graph.  Applies to HTML output only.
 	WorkflowPlan bool
+	// NodeSpacing is the column width in pixels used in the --workflowplan
+	// swimlane table.  Increase this value to prevent step labels from
+	// overprinting one another in dense workflow diagrams.  Default: 180.
+	NodeSpacing float64
 	// Simplify enables simplified union rendering.  When true, owl:unionOf
 	// class expressions are not represented as explicit triangle union nodes;
 	// instead the originating object-property edge is repeated once for each
@@ -71,6 +75,7 @@ func DefaultConfig() Config {
 		LinkDistance:   80,
 		ChargeStrength: -300,
 		CollideRadius:  20,
+		NodeSpacing:    180,
 	}
 }
 
@@ -100,6 +105,10 @@ func (c *Config) Validate() error {
 	}
 	if c.CollideRadius <= 0 {
 		return fmt.Errorf("--collide-radius must be positive, got %g", c.CollideRadius)
+	}
+
+	if c.NodeSpacing <= 0 {
+		return fmt.Errorf("--node-spacing must be positive, got %g", c.NodeSpacing)
 	}
 
 	if c.WorkflowPlan && c.Output == OutputJSON {

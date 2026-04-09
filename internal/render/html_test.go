@@ -315,7 +315,7 @@ func TestRenderHTML_ParallelEdgesUsePath(t *testing.T) {
 
 func TestRenderWorkflowPlan_NilModel(t *testing.T) {
 	var buf bytes.Buffer
-	err := render.RenderWorkflowPlan(nil, "Test", &buf)
+	err := render.RenderWorkflowPlan(nil, "Test", render.WorkflowPlanOptions{}, &buf)
 	if err == nil {
 		t.Fatal("RenderWorkflowPlan(nil) expected error, got nil")
 	}
@@ -328,7 +328,7 @@ func TestRenderWorkflowPlan_ContainsStructuralElements(t *testing.T) {
 		},
 	}
 	var buf bytes.Buffer
-	if err := render.RenderWorkflowPlan(wm, "My Workflow", &buf); err != nil {
+	if err := render.RenderWorkflowPlan(wm, "My Workflow", render.WorkflowPlanOptions{}, &buf); err != nil {
 		t.Fatalf("RenderWorkflowPlan: %v", err)
 	}
 	out := buf.String()
@@ -352,7 +352,7 @@ func TestRenderWorkflowPlan_ContainsStructuralElements(t *testing.T) {
 func TestRenderWorkflowPlan_DefaultTitle(t *testing.T) {
 	wm := &transform.WorkflowModel{Plans: nil}
 	var buf bytes.Buffer
-	if err := render.RenderWorkflowPlan(wm, "", &buf); err != nil {
+	if err := render.RenderWorkflowPlan(wm, "", render.WorkflowPlanOptions{}, &buf); err != nil {
 		t.Fatalf("RenderWorkflowPlan: %v", err)
 	}
 	if !strings.Contains(buf.String(), "ttl2d3 Workflow Plan") {
@@ -363,7 +363,7 @@ func TestRenderWorkflowPlan_DefaultTitle(t *testing.T) {
 func TestRenderWorkflowPlan_EmptyPlans(t *testing.T) {
 	wm := &transform.WorkflowModel{Plans: nil}
 	var buf bytes.Buffer
-	if err := render.RenderWorkflowPlan(wm, "Empty", &buf); err != nil {
+	if err := render.RenderWorkflowPlan(wm, "Empty", render.WorkflowPlanOptions{}, &buf); err != nil {
 		t.Fatalf("RenderWorkflowPlan: %v", err)
 	}
 	out := buf.String()
@@ -389,7 +389,7 @@ func TestRenderWorkflowPlan_StepsAndTransitionsEmbedded(t *testing.T) {
 		},
 	}
 	var buf bytes.Buffer
-	if err := render.RenderWorkflowPlan(wm, "Test Workflow", &buf); err != nil {
+	if err := render.RenderWorkflowPlan(wm, "Test Workflow", render.WorkflowPlanOptions{}, &buf); err != nil {
 		t.Fatalf("RenderWorkflowPlan: %v", err)
 	}
 	out := buf.String()
@@ -415,11 +415,60 @@ func TestRenderWorkflowPlan_HTMLEscaping(t *testing.T) {
 		},
 	}
 	var buf bytes.Buffer
-	if err := render.RenderWorkflowPlan(wm, `Title <&> "test"`, &buf); err != nil {
+	if err := render.RenderWorkflowPlan(wm, `Title <&> "test"`, render.WorkflowPlanOptions{}, &buf); err != nil {
 		t.Fatalf("RenderWorkflowPlan: %v", err)
 	}
 	out := buf.String()
 	if strings.Contains(out, `<Title`) {
 		t.Error("title was not HTML-escaped in workflowplan output")
+	}
+}
+
+func TestRenderWorkflowPlan_NodeSpacingApplied(t *testing.T) {
+	wm := &transform.WorkflowModel{
+		Plans: []transform.WorkflowPlan{
+			{ID: "https://example.org/Plan1", Label: "Plan One"},
+		},
+	}
+
+	tests := []struct {
+		name        string
+		opts        render.WorkflowPlanOptions
+		wantPx      string
+		wantDefault bool
+	}{
+		{
+			name:        "custom spacing 320px appears in output",
+			opts:        render.WorkflowPlanOptions{NodeSpacing: 320},
+			wantPx:      "320px",
+			wantDefault: false,
+		},
+		{
+			name:        "zero opts falls back to default 180px",
+			opts:        render.WorkflowPlanOptions{},
+			wantPx:      "180px",
+			wantDefault: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			if err := render.RenderWorkflowPlan(wm, "Spacing Test", tc.opts, &buf); err != nil {
+				t.Fatalf("RenderWorkflowPlan: %v", err)
+			}
+			out := buf.String()
+			if !strings.Contains(out, tc.wantPx) {
+				t.Errorf("expected %q in output; got (excerpt):\n%s",
+					tc.wantPx, out[:min(500, len(out))])
+			}
+		})
+	}
+}
+
+func TestRenderWorkflowPlan_DefaultNodeSpacing(t *testing.T) {
+	defaults := render.DefaultWorkflowPlanOptions()
+	if defaults.NodeSpacing != 180 {
+		t.Errorf("DefaultWorkflowPlanOptions().NodeSpacing = %g, want 180", defaults.NodeSpacing)
 	}
 }

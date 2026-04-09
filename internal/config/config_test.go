@@ -24,6 +24,9 @@ func TestDefaultConfig(t *testing.T) {
 	if c.WorkflowPlan != false {
 		t.Error("default WorkflowPlan should be false")
 	}
+	if c.NodeSpacing != 180 {
+		t.Errorf("default NodeSpacing = %g, want 180", c.NodeSpacing)
+	}
 }
 
 func TestValidate(t *testing.T) {
@@ -35,6 +38,7 @@ func TestValidate(t *testing.T) {
 			LinkDistance:   80,
 			ChargeStrength: -300,
 			CollideRadius:  20,
+			NodeSpacing:    180,
 		}
 	}
 
@@ -121,6 +125,34 @@ func TestValidate(t *testing.T) {
 				return c
 			}(),
 			wantErr: true,
+		},
+		// NodeSpacing-specific tests.
+		{
+			name: "zero node spacing rejected",
+			cfg: func() config.Config {
+				c := validBase()
+				c.NodeSpacing = 0
+				return c
+			}(),
+			wantErr: true,
+		},
+		{
+			name: "negative node spacing rejected",
+			cfg: func() config.Config {
+				c := validBase()
+				c.NodeSpacing = -10
+				return c
+			}(),
+			wantErr: true,
+		},
+		{
+			name: "custom node spacing accepted",
+			cfg: func() config.Config {
+				c := validBase()
+				c.NodeSpacing = 300
+				return c
+			}(),
+			wantErr: false,
 		},
 	}
 

@@ -126,19 +126,42 @@ func RenderHTML(gm *graph.GraphModel, opts HTMLOptions, w io.Writer) error {
 
 // workflowPlanTemplateData is the value passed to graph_workflowplan.html.
 type workflowPlanTemplateData struct {
-	Title string
-	Plans template.JS // JSON-encoded []transform.WorkflowPlan
+	Title        string
+	Plans        template.JS // JSON-encoded []transform.WorkflowPlan
+	NodeSpacing  float64     // column width in pixels
+	NodeInnerWidth float64   // NodeSpacing minus horizontal padding
+}
+
+// WorkflowPlanOptions configures the workflow-plan renderer.
+type WorkflowPlanOptions struct {
+	// NodeSpacing is the column width in pixels for the swimlane table.
+	// Increase this value to prevent step labels from overprinting in dense
+	// workflow diagrams.  A zero value falls back to the default (180 px).
+	NodeSpacing float64
+}
+
+// DefaultWorkflowPlanOptions returns WorkflowPlanOptions populated with
+// sensible default values.
+func DefaultWorkflowPlanOptions() WorkflowPlanOptions {
+	return WorkflowPlanOptions{
+		NodeSpacing: 180,
+	}
 }
 
 // RenderWorkflowPlan renders an indimp:WorkflowPlan model as a self-contained
 // directed process / swimlane HTML page and writes it to w.
-func RenderWorkflowPlan(wm *transform.WorkflowModel, title string, w io.Writer) error {
+func RenderWorkflowPlan(wm *transform.WorkflowModel, title string, opts WorkflowPlanOptions, w io.Writer) error {
 	if wm == nil {
 		return errors.New("render: WorkflowModel is nil")
 	}
 
 	if title == "" {
 		title = "ttl2d3 Workflow Plan"
+	}
+
+	// Apply default for zero-value NodeSpacing.
+	if opts.NodeSpacing == 0 {
+		opts.NodeSpacing = DefaultWorkflowPlanOptions().NodeSpacing
 	}
 
 	// Serialise the workflow model to JSON for inline embedding.
@@ -148,8 +171,13 @@ func RenderWorkflowPlan(wm *transform.WorkflowModel, title string, w io.Writer) 
 	}
 
 	data := workflowPlanTemplateData{
-		Title: title,
-		Plans: template.JS(jsonBuf.String()), //nolint:gosec // JSON encoder escapes < > &
+		Title:  title,
+		Plans:  template.JS(jsonBuf.String()), //nolint:gosec // JSON encoder escapes < > &
+		NodeSpacing: opts.NodeSpacing,
+		// NodeInnerWidth leaves 10 px of breathing room on each side of the
+		// step node within the lane cell (cell has 8 px left/right padding,
+		// and we reserve a further 2 px for the box-shadow).
+		NodeInnerWidth: opts.NodeSpacing - 20,
 	}
 
 	if err := htmlWorkflowPlanTmpl.Execute(w, data); err != nil {
