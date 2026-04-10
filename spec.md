@@ -147,6 +147,7 @@ ttl2d3 version
 | `--link-distance`       |       | `80`         | D3 link distance (force only)                        |
 | `--charge-strength`     |       | `-300`       | D3 charge strength (force only)                      |
 | `--collide-radius`      |       | `20`         | D3 collide radius (force only)                       |
+| `--gravity-strength`    |       | `0.1`        | D3 gravity toward centre (0–1, force only)           |
 | `--verbose`             | `-v`  | false        | Enable debug logging                                 |
 | `--help`                | `-h`  | —            | Show help                                            |
 

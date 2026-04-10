@@ -179,6 +179,7 @@ Default parameter starting points (tunable via CLI flags):
 | `linkDistance`   | 80      |
 | `chargeStrength` | -300    |
 | `collideRadius`  | 20      |
+| `gravityStrength`| 0.1     |
 
 ### 4.4 Accessibility
 * Use `aria-label` on the SVG element.

@@ -48,6 +48,9 @@ type Config struct {
 	ChargeStrength float64
 	// CollideRadius is the D3 collision-detection radius parameter.
 	CollideRadius float64
+	// GravityStrength is the D3 forceX/forceY strength that pulls nodes
+	// toward the centre of the viewport (0 = none, 1 = strong).
+	GravityStrength float64
 	// Verbose enables DEBUG-level structured logging.
 	Verbose bool
 	// WorkflowPlan enables the custom WorkflowPlan visualiser.  When set, the
@@ -71,11 +74,12 @@ type Config struct {
 // DefaultConfig returns a Config populated with the default values from the spec.
 func DefaultConfig() Config {
 	return Config{
-		Output:         OutputHTML,
-		LinkDistance:   80,
-		ChargeStrength: -300,
-		CollideRadius:  20,
-		NodeSpacing:    180,
+		Output:          OutputHTML,
+		LinkDistance:    80,
+		ChargeStrength:  -300,
+		CollideRadius:   20,
+		GravityStrength: 0.1,
+		NodeSpacing:     180,
 	}
 }
 

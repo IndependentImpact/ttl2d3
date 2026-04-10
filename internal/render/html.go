@@ -35,25 +35,30 @@ type HTMLOptions struct {
 	ChargeStrength float64
 	// CollideRadius is the D3 collision-detection radius (default 20).
 	CollideRadius float64
+	// GravityStrength is the D3 forceX/forceY strength pulling nodes toward
+	// the centre of the viewport (0 = none, 1 = strong; default 0.1).
+	GravityStrength float64
 }
 
 // DefaultHTMLOptions returns HTMLOptions populated with the default values from
 // the spec (§3.5).
 func DefaultHTMLOptions() HTMLOptions {
 	return HTMLOptions{
-		LinkDistance:   80,
-		ChargeStrength: -300,
-		CollideRadius:  20,
+		LinkDistance:    80,
+		ChargeStrength:  -300,
+		CollideRadius:   20,
+		GravityStrength: 0.1,
 	}
 }
 
 // templateData is the value passed to graph.html during template execution.
 type templateData struct {
-	Title          string
-	GraphJSON      template.JS
-	LinkDistance   float64
-	ChargeStrength float64
-	CollideRadius  float64
+	Title           string
+	GraphJSON       template.JS
+	LinkDistance    float64
+	ChargeStrength  float64
+	CollideRadius   float64
+	GravityStrength float64
 }
 
 // RenderHTML serialises gm as a self-contained HTML page and writes it to w.
@@ -87,6 +92,9 @@ func RenderHTML(gm *graph.GraphModel, opts HTMLOptions, w io.Writer) error {
 	if opts.CollideRadius == 0 {
 		opts.CollideRadius = defaults.CollideRadius
 	}
+	if opts.GravityStrength == 0 {
+		opts.GravityStrength = defaults.GravityStrength
+	}
 
 	// Resolve page title.
 	title := opts.Title
@@ -112,10 +120,11 @@ func RenderHTML(gm *graph.GraphModel, opts HTMLOptions, w io.Writer) error {
 		Title: title,
 		// template.JS marks the value as safe JavaScript; the content is the
 		// JSON output from RenderJSON which always HTML-escapes string values.
-		GraphJSON:      template.JS(jsonBuf.String()), //nolint:gosec // JSON encoder escapes < > &
-		LinkDistance:   opts.LinkDistance,
-		ChargeStrength: opts.ChargeStrength,
-		CollideRadius:  opts.CollideRadius,
+		GraphJSON:       template.JS(jsonBuf.String()), //nolint:gosec // JSON encoder escapes < > &
+		LinkDistance:    opts.LinkDistance,
+		ChargeStrength:  opts.ChargeStrength,
+		CollideRadius:   opts.CollideRadius,
+		GravityStrength: opts.GravityStrength,
 	}
 
 	if err := htmlTmpl.Execute(w, data); err != nil {
