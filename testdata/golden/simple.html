@@ -697,9 +697,10 @@
         const dims = getDims();
         width  = dims.width;
         height = dims.height;
+        const g = parseFloat(document.getElementById('gravity-slider').value);
         simulation.force('center', d3.forceCenter(width / 2, height / 2));
-        simulation.force('gravityX', d3.forceX(width / 2).strength(parseFloat(document.getElementById('gravity-slider').value)));
-        simulation.force('gravityY', d3.forceY(height / 2).strength(parseFloat(document.getElementById('gravity-slider').value)));
+        simulation.force('gravityX', d3.forceX(width / 2).strength(g));
+        simulation.force('gravityY', d3.forceY(height / 2).strength(g));
         simulation.alpha(0.3).restart();
       }).observe(graphContainer);
     }
