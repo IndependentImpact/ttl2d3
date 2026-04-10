@@ -55,6 +55,7 @@ self-contained HTML; use --output json for a standalone D3 JSON object.`,
 				"linkDistance", cfg.LinkDistance,
 				"chargeStrength", cfg.ChargeStrength,
 				"collideRadius", cfg.CollideRadius,
+				"gravityStrength", cfg.GravityStrength,
 				"workflowPlan", cfg.WorkflowPlan,
 				"nodeSpacing", cfg.NodeSpacing,
 				"simplify", cfg.Simplify,
@@ -73,6 +74,7 @@ self-contained HTML; use --output json for a standalone D3 JSON object.`,
 	f.Float64Var(&cfg.LinkDistance, "link-distance", cfg.LinkDistance, "D3 force link distance")
 	f.Float64Var(&cfg.ChargeStrength, "charge-strength", cfg.ChargeStrength, "D3 many-body charge strength")
 	f.Float64Var(&cfg.CollideRadius, "collide-radius", cfg.CollideRadius, "D3 collision-detection radius")
+	f.Float64Var(&cfg.GravityStrength, "gravity-strength", cfg.GravityStrength, "D3 gravity strength pulling nodes toward the centre (0–1)")
 	f.BoolVar(&cfg.WorkflowPlan, "workflowplan", false, "Render indimp:WorkflowPlan resources as a directed process / swimlane diagram (HTML output only)")
 	f.Float64Var(&cfg.NodeSpacing, "node-spacing", cfg.NodeSpacing, "Column width in pixels for --workflowplan swimlane table (increase to avoid overprinting)")
 	f.BoolVar(&cfg.Simplify, "simplify", false, "Render owl:unionOf as repeated direct edges instead of a triangle union node")
@@ -200,9 +202,10 @@ func runConvert(cfg config.Config) (retErr error) {
 			}
 		} else {
 			opts := render.HTMLOptions{
-				LinkDistance:   cfg.LinkDistance,
-				ChargeStrength: cfg.ChargeStrength,
-				CollideRadius:  cfg.CollideRadius,
+				LinkDistance:    cfg.LinkDistance,
+				ChargeStrength:  cfg.ChargeStrength,
+				CollideRadius:   cfg.CollideRadius,
+				GravityStrength: cfg.GravityStrength,
 			}
 			if err := render.RenderHTML(gm, opts, w); err != nil {
 				return fmt.Errorf("convert: rendering HTML: %w", err)

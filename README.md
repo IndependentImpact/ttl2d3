@@ -73,6 +73,7 @@ or move it onto your `PATH` (the file is already executable after `go build`).
 | `--link-distance`      |       | `80`        | D3 force link distance (force layout only)               |
 | `--charge-strength`    |       | `-300`      | D3 many-body charge strength (force layout only)         |
 | `--collide-radius`     |       | `20`        | D3 collision-detection radius (force layout only)        |
+| `--gravity-strength`   |       | `0.1`       | D3 gravity pulling nodes toward the centre (0–1, force layout only) |
 | `--verbose`            | `-v`  | false       | Enable debug logging                                     |
 | `--help`               | `-h`  | —           | Show help                                                |
 
