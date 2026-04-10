@@ -59,6 +59,11 @@ type Config struct {
 	// swimlane table.  Increase this value to prevent step labels from
 	// overprinting one another in dense workflow diagrams.  Default: 180.
 	NodeSpacing float64
+	// VerticalNodeSpacing is the vertical margin in pixels applied to the top
+	// and bottom of each step node in the --workflowplan swimlane.  Increase
+	// this value to add more vertical breathing room between step blocks and
+	// prevent overprinting in tall workflow diagrams.  Default: 20.
+	VerticalNodeSpacing float64
 	// Simplify enables simplified union rendering.  When true, owl:unionOf
 	// class expressions are not represented as explicit triangle union nodes;
 	// instead the originating object-property edge is repeated once for each
@@ -71,11 +76,12 @@ type Config struct {
 // DefaultConfig returns a Config populated with the default values from the spec.
 func DefaultConfig() Config {
 	return Config{
-		Output:         OutputHTML,
-		LinkDistance:   80,
-		ChargeStrength: -300,
-		CollideRadius:  20,
-		NodeSpacing:    180,
+		Output:              OutputHTML,
+		LinkDistance:        80,
+		ChargeStrength:      -300,
+		CollideRadius:       20,
+		NodeSpacing:         180,
+		VerticalNodeSpacing: 20,
 	}
 }
 
@@ -109,6 +115,10 @@ func (c *Config) Validate() error {
 
 	if c.NodeSpacing <= 0 {
 		return fmt.Errorf("--node-spacing must be positive, got %g", c.NodeSpacing)
+	}
+
+	if c.VerticalNodeSpacing <= 0 {
+		return fmt.Errorf("--vertical-node-spacing must be positive, got %g", c.VerticalNodeSpacing)
 	}
 
 	if c.WorkflowPlan && c.Output == OutputJSON {
