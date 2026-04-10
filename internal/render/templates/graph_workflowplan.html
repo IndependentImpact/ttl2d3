@@ -69,16 +69,16 @@
       text-align: center;
       padding: 6px 12px;
       border: 1px solid #6c757d;
-      min-width: 140px;
-      width: 140px;
+      min-width: {{.NodeSpacing}}px;
+      width: {{.NodeSpacing}}px;
     }
     .lane-cell {
       border: 1px solid #dee2e6;
       background: #fff;
       padding: 12px 8px;
       vertical-align: top;
-      min-width: 140px;
-      width: 140px;
+      min-width: {{.NodeSpacing}}px;
+      width: {{.NodeSpacing}}px;
     }
     .lane-cell:nth-child(even) { background: #f8f9fa; }
 
@@ -94,7 +94,7 @@
       cursor: default;
       position: relative;
       margin: 4px auto;
-      max-width: 120px;
+      max-width: {{.NodeInnerWidth}}px;
       word-break: break-word;
       box-shadow: 0 1px 3px rgba(0,0,0,.2);
       transition: box-shadow .15s;
