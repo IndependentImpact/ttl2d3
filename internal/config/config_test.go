@@ -27,18 +27,22 @@ func TestDefaultConfig(t *testing.T) {
 	if c.NodeSpacing != 180 {
 		t.Errorf("default NodeSpacing = %g, want 180", c.NodeSpacing)
 	}
+	if c.VerticalNodeSpacing != 20 {
+		t.Errorf("default VerticalNodeSpacing = %g, want 20", c.VerticalNodeSpacing)
+	}
 }
 
 func TestValidate(t *testing.T) {
 	// validBase returns a minimally valid Config; tests override individual fields.
 	validBase := func() config.Config {
 		return config.Config{
-			Input:          "file.ttl",
-			Output:         config.OutputHTML,
-			LinkDistance:   80,
-			ChargeStrength: -300,
-			CollideRadius:  20,
-			NodeSpacing:    180,
+			Input:               "file.ttl",
+			Output:              config.OutputHTML,
+			LinkDistance:        80,
+			ChargeStrength:      -300,
+			CollideRadius:       20,
+			NodeSpacing:         180,
+			VerticalNodeSpacing: 20,
 		}
 	}
 
@@ -150,6 +154,34 @@ func TestValidate(t *testing.T) {
 			cfg: func() config.Config {
 				c := validBase()
 				c.NodeSpacing = 300
+				return c
+			}(),
+			wantErr: false,
+		},
+		// VerticalNodeSpacing-specific tests.
+		{
+			name: "zero vertical node spacing rejected",
+			cfg: func() config.Config {
+				c := validBase()
+				c.VerticalNodeSpacing = 0
+				return c
+			}(),
+			wantErr: true,
+		},
+		{
+			name: "negative vertical node spacing rejected",
+			cfg: func() config.Config {
+				c := validBase()
+				c.VerticalNodeSpacing = -5
+				return c
+			}(),
+			wantErr: true,
+		},
+		{
+			name: "custom vertical node spacing accepted",
+			cfg: func() config.Config {
+				c := validBase()
+				c.VerticalNodeSpacing = 60
 				return c
 			}(),
 			wantErr: false,

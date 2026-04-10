@@ -472,3 +472,52 @@ func TestRenderWorkflowPlan_DefaultNodeSpacing(t *testing.T) {
 		t.Errorf("DefaultWorkflowPlanOptions().NodeSpacing = %g, want 180", defaults.NodeSpacing)
 	}
 }
+
+func TestRenderWorkflowPlan_DefaultVerticalNodeSpacing(t *testing.T) {
+	defaults := render.DefaultWorkflowPlanOptions()
+	if defaults.VerticalNodeSpacing != 20 {
+		t.Errorf("DefaultWorkflowPlanOptions().VerticalNodeSpacing = %g, want 20", defaults.VerticalNodeSpacing)
+	}
+}
+
+func TestRenderWorkflowPlan_VerticalNodeSpacingApplied(t *testing.T) {
+	wm := &transform.WorkflowModel{
+		Plans: []transform.WorkflowPlan{
+			{ID: "https://example.org/Plan1", Label: "Plan One"},
+		},
+	}
+
+	tests := []struct {
+		name        string
+		opts        render.WorkflowPlanOptions
+		wantPx      string
+		wantDefault bool
+	}{
+		{
+			name:        "custom vertical spacing 60px appears in output",
+			opts:        render.WorkflowPlanOptions{NodeSpacing: 180, VerticalNodeSpacing: 60},
+			wantPx:      "60px",
+			wantDefault: false,
+		},
+		{
+			name:        "zero opts falls back to default 20px vertical spacing",
+			opts:        render.WorkflowPlanOptions{},
+			wantPx:      "20px",
+			wantDefault: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			if err := render.RenderWorkflowPlan(wm, "Vertical Spacing Test", tc.opts, &buf); err != nil {
+				t.Fatalf("RenderWorkflowPlan: %v", err)
+			}
+			out := buf.String()
+			if !strings.Contains(out, tc.wantPx) {
+				t.Errorf("expected %q in output; got (excerpt):\n%s",
+					tc.wantPx, out[:min(500, len(out))])
+			}
+		})
+	}
+}

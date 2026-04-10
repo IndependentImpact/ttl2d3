@@ -126,10 +126,11 @@ func RenderHTML(gm *graph.GraphModel, opts HTMLOptions, w io.Writer) error {
 
 // workflowPlanTemplateData is the value passed to graph_workflowplan.html.
 type workflowPlanTemplateData struct {
-	Title        string
-	Plans        template.JS // JSON-encoded []transform.WorkflowPlan
-	NodeSpacing  float64     // column width in pixels
-	NodeInnerWidth float64   // NodeSpacing minus horizontal padding
+	Title               string
+	Plans               template.JS // JSON-encoded []transform.WorkflowPlan
+	NodeSpacing         float64     // column width in pixels
+	NodeInnerWidth      float64     // NodeSpacing minus horizontal padding
+	VerticalNodeSpacing float64     // vertical margin in pixels between step nodes
 }
 
 // WorkflowPlanOptions configures the workflow-plan renderer.
@@ -138,13 +139,19 @@ type WorkflowPlanOptions struct {
 	// Increase this value to prevent step labels from overprinting in dense
 	// workflow diagrams.  A zero value falls back to the default (180 px).
 	NodeSpacing float64
+	// VerticalNodeSpacing is the vertical margin in pixels applied to the top
+	// and bottom of each step node.  Increase this value to add more vertical
+	// breathing room between step blocks and prevent overprinting in tall
+	// workflow diagrams.  A zero value falls back to the default (20 px).
+	VerticalNodeSpacing float64
 }
 
 // DefaultWorkflowPlanOptions returns WorkflowPlanOptions populated with
 // sensible default values.
 func DefaultWorkflowPlanOptions() WorkflowPlanOptions {
 	return WorkflowPlanOptions{
-		NodeSpacing: 180,
+		NodeSpacing:         180,
+		VerticalNodeSpacing: 20,
 	}
 }
 
@@ -164,6 +171,11 @@ func RenderWorkflowPlan(wm *transform.WorkflowModel, title string, opts Workflow
 		opts.NodeSpacing = DefaultWorkflowPlanOptions().NodeSpacing
 	}
 
+	// Apply default for zero-value VerticalNodeSpacing.
+	if opts.VerticalNodeSpacing == 0 {
+		opts.VerticalNodeSpacing = DefaultWorkflowPlanOptions().VerticalNodeSpacing
+	}
+
 	// Serialise the workflow model to JSON for inline embedding.
 	var jsonBuf bytes.Buffer
 	if err := renderWorkflowModelJSON(wm, &jsonBuf); err != nil {
@@ -177,7 +189,8 @@ func RenderWorkflowPlan(wm *transform.WorkflowModel, title string, opts Workflow
 		// NodeInnerWidth leaves 10 px of breathing room on each side of the
 		// step node within the lane cell (cell has 8 px left/right padding,
 		// and we reserve a further 2 px for the box-shadow).
-		NodeInnerWidth: opts.NodeSpacing - 20,
+		NodeInnerWidth:      opts.NodeSpacing - 20,
+		VerticalNodeSpacing: opts.VerticalNodeSpacing,
 	}
 
 	if err := htmlWorkflowPlanTmpl.Execute(w, data); err != nil {
