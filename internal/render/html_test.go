@@ -44,6 +44,7 @@ func TestRenderHTML_ContainsStructuralElements(t *testing.T) {
 		`id="graph"`,
 		`id="legend"`,
 		`id="search"`,
+		`id="search-edges"`,
 		`id="toolbar"`,
 		`id="tooltip"`,
 	} {
@@ -192,6 +193,67 @@ func TestRenderHTML_LegendPresent(t *testing.T) {
 	for _, want := range []string{"Class", "Union", "Property", "Instance", "Literal", "Origin", "Namespaces"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("legend missing entry %q", want)
+		}
+	}
+}
+
+func TestRenderHTML_TypeFilterCheckboxes(t *testing.T) {
+	// Each node type must have a corresponding type-filter checkbox in the legend,
+	// defaulting to checked (all types visible on initial load).
+	gm := graph.NewGraphModel(nil, nil, graph.Metadata{})
+	var buf bytes.Buffer
+	if err := render.RenderHTML(&gm, render.HTMLOptions{}, &buf); err != nil {
+		t.Fatalf("RenderHTML: %v", err)
+	}
+	out := buf.String()
+
+	for _, nodeType := range []string{"class", "union", "property", "instance", "literal"} {
+		want := `class="type-filter" data-type="` + nodeType + `" checked`
+		if !strings.Contains(out, want) {
+			t.Errorf("legend missing checked type-filter checkbox for %q", nodeType)
+		}
+	}
+}
+
+func TestRenderHTML_PropertySearchInput(t *testing.T) {
+	// The property/edge search input must be present in the toolbar.
+	gm := graph.NewGraphModel(nil, nil, graph.Metadata{})
+	var buf bytes.Buffer
+	if err := render.RenderHTML(&gm, render.HTMLOptions{}, &buf); err != nil {
+		t.Fatalf("RenderHTML: %v", err)
+	}
+	out := buf.String()
+
+	for _, want := range []string{
+		`id="search-edges"`,
+		`placeholder="Search properties…"`,
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("output missing property search element %q", want)
+		}
+	}
+}
+
+func TestRenderHTML_ApplyFiltersInScript(t *testing.T) {
+	// The combined applyFilters function and type-filter/edge-search event
+	// listeners must be present in the rendered JavaScript.
+	gm := graph.NewGraphModel(nil, nil, graph.Metadata{})
+	var buf bytes.Buffer
+	if err := render.RenderHTML(&gm, render.HTMLOptions{}, &buf); err != nil {
+		t.Fatalf("RenderHTML: %v", err)
+	}
+	out := buf.String()
+
+	for _, want := range []string{
+		`applyFilters`,
+		`visibleTypes`,
+		`search-edges`,
+		`type-filter`,
+		`type-hidden`,
+		`link-highlighted`,
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("script missing expected token %q", want)
 		}
 	}
 }
