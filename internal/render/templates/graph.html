@@ -37,9 +37,9 @@
       max-width: 30rem;
     }
 
-    #search {
+    #search, #search-edges {
       flex: 1;
-      max-width: 20rem;
+      max-width: 14rem;
       padding: 0.25rem 0.5rem;
       border: 1px solid #ced4da;
       border-radius: 4px;
@@ -48,7 +48,7 @@
       background: #ffffff;
     }
 
-    #search:focus {
+    #search:focus, #search-edges:focus {
       outline: 2px solid #0d6efd;
       outline-offset: 1px;
     }
@@ -127,6 +127,37 @@
     }
 
     .link-label.faded { opacity: 0.08; }
+
+    /* ── Highlighted edge (property search match) ─────────────────────────── */
+    .link.link-highlighted {
+      stroke: #0d6efd;
+      stroke-opacity: 0.9;
+      stroke-width: 2.5px;
+    }
+
+    .link-label.link-highlighted {
+      fill: #0d6efd;
+      font-weight: 700;
+    }
+
+    /* ── Type-hidden: filtered out by type toggles ────────────────────────── */
+    .node.type-hidden { display: none; }
+    .link.type-hidden, .link-label.type-hidden { display: none; }
+
+    /* ── Type-filter checkboxes in legend ─────────────────────────────────── */
+    label.legend-item {
+      cursor: pointer;
+      border-radius: 3px;
+      padding: 1px 2px;
+    }
+
+    label.legend-item:hover { background: rgba(0, 0, 0, 0.05); }
+
+    .legend-item input[type="checkbox"] {
+      cursor: pointer;
+      accent-color: #0d6efd;
+      flex-shrink: 0;
+    }
 
     /* ── Legend ───────────────────────────────────────────────────────────── */
     #legend {
@@ -215,6 +246,12 @@
       placeholder="Search nodes…"
       aria-label="Search nodes by label"
     />
+    <input
+      id="search-edges"
+      type="search"
+      placeholder="Search properties…"
+      aria-label="Search properties by label"
+    />
     <div id="gravity-control">
       <label for="gravity-slider">Gravity</label>
       <input
@@ -239,26 +276,31 @@
 
     <nav id="legend" aria-label="Graph legend">
       <h2>Legend</h2>
-      <div class="legend-item">
+      <label class="legend-item">
+        <input type="checkbox" class="type-filter" data-type="class" checked aria-label="Show Class nodes" />
         <span class="legend-swatch circle" style="background:#1f77b4;" aria-hidden="true"></span>
         <span>Class</span>
-      </div>
-      <div class="legend-item">
+      </label>
+      <label class="legend-item">
+        <input type="checkbox" class="type-filter" data-type="union" checked aria-label="Show Union nodes" />
         <span class="legend-swatch triangle" style="background:#0c8599;" aria-hidden="true"></span>
         <span>Union</span>
-      </div>
-      <div class="legend-item">
+      </label>
+      <label class="legend-item">
+        <input type="checkbox" class="type-filter" data-type="property" checked aria-label="Show Property nodes" />
         <span class="legend-swatch diamond" style="background:#9e5200;" aria-hidden="true"></span>
         <span>Property</span>
-      </div>
-      <div class="legend-item">
+      </label>
+      <label class="legend-item">
+        <input type="checkbox" class="type-filter" data-type="instance" checked aria-label="Show Instance nodes" />
         <span class="legend-swatch" style="background:#2ca02c;" aria-hidden="true"></span>
         <span>Instance</span>
-      </div>
-      <div class="legend-item">
+      </label>
+      <label class="legend-item">
+        <input type="checkbox" class="type-filter" data-type="literal" checked aria-label="Show Literal nodes" />
         <span class="legend-swatch" style="background:#d62728;" aria-hidden="true"></span>
         <span>Literal</span>
-      </div>
+      </label>
       <h2>Origin</h2>
       <div class="legend-item">
         <span class="legend-swatch outline" style="border-color:#0b7285;" aria-hidden="true"></span>
@@ -616,37 +658,99 @@
         .replace(/"/g, '&quot;');
     }
 
-    /* ── Search / filter ────────────────────────────────────────────────── */
-    document.getElementById('search').addEventListener('input', function () {
-      const q = this.value.trim().toLowerCase();
+    /* ── Node lookup map ─────────────────────────────────────────────────── */
+    const nodeById = new Map(nodes.map((n) => [n.id, n]));
 
-      if (!q) {
-        nodeSel.classed('faded', false).classed('highlighted', false);
-        linkSel.classed('faded', false);
-        linkLabelSel.classed('faded', false);
-        return;
+    /* ── Type visibility state ──────────────────────────────────────────── */
+    const visibleTypes = new Set(['class', 'union', 'property', 'instance', 'literal']);
+
+    /* ── Combined search / filter ───────────────────────────────────────── */
+    function applyFilters() {
+      const nodeQ = document.getElementById('search').value.trim().toLowerCase();
+      const edgeQ = document.getElementById('search-edges').value.trim().toLowerCase();
+
+      const hasNodeQ = nodeQ.length > 0;
+      const hasEdgeQ = edgeQ.length > 0;
+      const hasAnySearch = hasNodeQ || hasEdgeQ;
+
+      // Node IDs that match the node search query.
+      const nodeMatchedIDs = hasNodeQ
+        ? new Set(nodes.filter((d) => (d.label || d.id).toLowerCase().includes(nodeQ)).map((d) => d.id))
+        : null;
+
+      // Links whose label matches the edge/property search query.
+      const edgeMatchedSet = hasEdgeQ
+        ? new Set(links.filter((d) => d.label && d.label.toLowerCase().includes(edgeQ)))
+        : null;
+
+      // Node IDs that are endpoints of a matched edge.
+      const edgeConnectedIDs = edgeMatchedSet
+        ? new Set(Array.from(edgeMatchedSet).flatMap((d) => [
+            typeof d.source === 'object' ? d.source.id : d.source,
+            typeof d.target === 'object' ? d.target.id : d.target,
+          ]))
+        : null;
+
+      // Returns true when a link's source or target belongs to a hidden type.
+      function linkEndpointsHidden(d) {
+        const sid = typeof d.source === 'object' ? d.source.id : d.source;
+        const tid = typeof d.target === 'object' ? d.target.id : d.target;
+        const src = nodeById.get(sid);
+        const tgt = nodeById.get(tid);
+        return (src && !visibleTypes.has(src.type)) || (tgt && !visibleTypes.has(tgt.type));
       }
 
-      const matchedIDs = new Set(
-        nodes
-          .filter((d) => (d.label || d.id).toLowerCase().includes(q))
-          .map((d) => d.id)
-      );
+      // A node is "search-matched" when it matches the node query OR is
+      // connected to an edge that matches the edge query (OR both).
+      function nodeIsSearchMatched(d) {
+        if (nodeMatchedIDs && nodeMatchedIDs.has(d.id)) return true;
+        if (edgeConnectedIDs && edgeConnectedIDs.has(d.id)) return true;
+        return false;
+      }
 
+      // A link is "search-matched" when its label matches the edge query OR
+      // at least one endpoint matches the node query.
+      function linkIsSearchMatched(d) {
+        if (edgeMatchedSet && edgeMatchedSet.has(d)) return true;
+        if (nodeMatchedIDs) {
+          const sid = typeof d.source === 'object' ? d.source.id : d.source;
+          const tid = typeof d.target === 'object' ? d.target.id : d.target;
+          if (nodeMatchedIDs.has(sid) || nodeMatchedIDs.has(tid)) return true;
+        }
+        return false;
+      }
+
+      // ── Apply to nodes ──
       nodeSel
-        .classed('highlighted', (d) => matchedIDs.has(d.id))
-        .classed('faded', (d) => !matchedIDs.has(d.id));
+        .classed('type-hidden',  (d) => !visibleTypes.has(d.type))
+        .classed('highlighted',  (d) => visibleTypes.has(d.type) && hasAnySearch && nodeIsSearchMatched(d))
+        .classed('faded',        (d) => visibleTypes.has(d.type) && hasAnySearch && !nodeIsSearchMatched(d));
 
-      linkSel.classed('faded', (d) => {
-        const sid = typeof d.source === 'object' ? d.source.id : d.source;
-        const tid = typeof d.target === 'object' ? d.target.id : d.target;
-        return !matchedIDs.has(sid) && !matchedIDs.has(tid);
-      });
+      // ── Apply to links ──
+      linkSel
+        .classed('type-hidden',      (d) => linkEndpointsHidden(d))
+        .classed('link-highlighted', (d) => !linkEndpointsHidden(d) && hasEdgeQ && edgeMatchedSet.has(d))
+        .classed('faded',            (d) => !linkEndpointsHidden(d) && hasAnySearch && !linkIsSearchMatched(d));
 
-      linkLabelSel.classed('faded', (d) => {
-        const sid = typeof d.source === 'object' ? d.source.id : d.source;
-        const tid = typeof d.target === 'object' ? d.target.id : d.target;
-        return !matchedIDs.has(sid) && !matchedIDs.has(tid);
+      // ── Apply to link labels ──
+      linkLabelSel
+        .classed('type-hidden',      (d) => linkEndpointsHidden(d))
+        .classed('link-highlighted', (d) => !linkEndpointsHidden(d) && hasEdgeQ && edgeMatchedSet.has(d))
+        .classed('faded',            (d) => !linkEndpointsHidden(d) && hasAnySearch && !linkIsSearchMatched(d));
+    }
+
+    /* ── Search / filter event listeners ───────────────────────────────── */
+    document.getElementById('search').addEventListener('input', applyFilters);
+    document.getElementById('search-edges').addEventListener('input', applyFilters);
+
+    document.querySelectorAll('.type-filter').forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        if (this.checked) {
+          visibleTypes.add(this.dataset.type);
+        } else {
+          visibleTypes.delete(this.dataset.type);
+        }
+        applyFilters();
       });
     });
 
