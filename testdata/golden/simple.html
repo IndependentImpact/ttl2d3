@@ -712,13 +712,12 @@
         : null;
 
       
-      const edgeConnectedIDs = edgeMatchedSet ? new Set() : null;
-      if (edgeMatchedSet) {
-        edgeMatchedSet.forEach((d) => {
-          edgeConnectedIDs.add(typeof d.source === 'object' ? d.source.id : d.source);
-          edgeConnectedIDs.add(typeof d.target === 'object' ? d.target.id : d.target);
-        });
-      }
+      const edgeConnectedIDs = edgeMatchedSet
+        ? new Set(Array.from(edgeMatchedSet).flatMap((d) => [
+            typeof d.source === 'object' ? d.source.id : d.source,
+            typeof d.target === 'object' ? d.target.id : d.target,
+          ]))
+        : null;
 
       
       function linkEndpointsHidden(d) {
