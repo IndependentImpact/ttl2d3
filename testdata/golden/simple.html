@@ -63,6 +63,20 @@
       color: #495057;
     }
 
+     
+    #unpin-all {
+      padding: 0.25rem 0.625rem;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      font-size: 0.8125rem;
+      background: #ffffff;
+      color: #495057;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    #unpin-all:hover { background: #e9ecef; }
+
     #gravity-slider {
       width: 6rem;
       accent-color: #0d6efd;
@@ -110,6 +124,9 @@
     .node.faded .node-label { opacity: 0.15; }
 
     .node.highlighted path { stroke-width: 3px; }
+
+     
+    .node.pinned path { stroke-dasharray: 4 2; }
 
     .node-label {
       font-size: 11px;
@@ -265,6 +282,7 @@
       />
       <span id="gravity-value" aria-live="polite">0.1</span>
     </div>
+    <button id="unpin-all" aria-label="Unpin all nodes" title="Release all manually pinned nodes">Unpin all</button>
   </div>
 
   <div id="graph-container">
@@ -650,9 +668,27 @@
 
     function dragEnded(event, d) {
       if (!event.active) simulation.alphaTarget(0);
+      
+      d.fx = d.x;
+      d.fy = d.y;
+      d3.select(this).classed('pinned', true);
+    }
+
+     
+    nodeSel.on('dblclick', function (event, d) {
+      event.stopPropagation();
       d.fx = null;
       d.fy = null;
-    }
+      d3.select(this).classed('pinned', false);
+      simulation.alpha(0.1).restart();
+    });
+
+     
+    document.getElementById('unpin-all').addEventListener('click', function () {
+      nodes.forEach((d) => { d.fx = null; d.fy = null; });
+      nodeSel.classed('pinned', false);
+      simulation.alpha(0.3).restart();
+    });
 
      
     const tooltipEl = document.getElementById('tooltip');
