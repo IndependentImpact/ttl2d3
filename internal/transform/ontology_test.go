@@ -1626,7 +1626,7 @@ ex:isKnownBy a owl:ObjectProperty ;
 		iriA        = "http://example.org/invboth#A"
 		iriB        = "http://example.org/invboth#B"
 		iriKnows    = "http://example.org/invboth#knows"
-		iriIsKnown  = "http://example.org/invboth#isKnownBy"
+		iriIsKnownBy  = "http://example.org/invboth#isKnownBy"
 	)
 
 	if !hasLink(gm.Links, iriA, iriB, "knows") {
@@ -1640,7 +1640,7 @@ ex:isKnownBy a owl:ObjectProperty ;
 	if findNode(gm.Nodes, iriKnows) != nil {
 		t.Error("knows should be an edge, not a node")
 	}
-	if findNode(gm.Nodes, iriIsKnown) != nil {
+	if findNode(gm.Nodes, iriIsKnownBy) != nil {
 		t.Error("isKnownBy should be an edge, not a node")
 	}
 

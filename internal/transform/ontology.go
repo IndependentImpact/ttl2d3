@@ -355,14 +355,8 @@ func BuildGraphModel(g *parser.Graph, opts ...Options) (*graph.GraphModel, error
 	// -----------------------------------------------------------------------
 
 	for propA, propB := range inverseOf {
-		aIsObjectProp := false
-		if _, ok := objectProps[propA]; ok {
-			aIsObjectProp = true
-		}
-		bIsObjectProp := false
-		if _, ok := objectProps[propB]; ok {
-			bIsObjectProp = true
-		}
+		_, aIsObjectProp := objectProps[propA]
+		_, bIsObjectProp := objectProps[propB]
 
 		if aIsObjectProp {
 			// Register propB as an object property if not yet known.
