@@ -32,6 +32,7 @@ const (
 	iriOWLDisjointWith     = "http://www.w3.org/2002/07/owl#disjointWith"
 	iriOWLUnionOf          = "http://www.w3.org/2002/07/owl#unionOf"
 	iriOWLVersionInfo      = "http://www.w3.org/2002/07/owl#versionInfo"
+	iriOWLInverseOf        = "http://www.w3.org/2002/07/owl#inverseOf"
 
 	iriSKOSConcept       = "http://www.w3.org/2004/02/skos/core#Concept"
 	iriSKOSConceptScheme = "http://www.w3.org/2004/02/skos/core#ConceptScheme"
@@ -153,6 +154,11 @@ func BuildGraphModel(g *parser.Graph, opts ...Options) (*graph.GraphModel, error
 
 	// objectProps tracks IRIs explicitly declared as owl:ObjectProperty.
 	objectProps := make(map[string]struct{})
+
+	// inverseOf maps a property IRI to the IRI of its owl:inverseOf property.
+	// Both directions are stored: if "A owl:inverseOf B" appears, we record
+	// inverseOf[A]=B (and symmetrically derive B's domain/range from A's).
+	inverseOf := make(map[string]string)
 
 	// datatypeProps tracks IRIs explicitly declared as owl:DatatypeProperty.
 	datatypeProps := make(map[string]struct{})
@@ -302,6 +308,14 @@ func BuildGraphModel(g *parser.Graph, opts ...Options) (*graph.GraphModel, error
 			if objIRI := termIRI(t.Object); objIRI != "" {
 				skosImplied[objIRI] = struct{}{}
 			}
+		case iriOWLInverseOf:
+			// Record owl:inverseOf so that we can infer domain/range for the
+			// implied inverse property after the main loop.  We do NOT fall
+			// through to genericObjTriples so the pair is not rendered as a
+			// raw "inverseOf" edge between two property nodes.
+			if objIRI := termIRI(t.Object); objIRI != "" {
+				inverseOf[subjIRI] = objIRI
+			}
 		default:
 			// Collect non-builtin IRI→IRI triples for later graph expansion.
 			// All qualifying triples are stored here regardless of whether the
@@ -329,6 +343,82 @@ func BuildGraphModel(g *parser.Graph, opts ...Options) (*graph.GraphModel, error
 		members := unionMembers(blankID, unionOfList, listFirst, listRest)
 		unionCache[blankID] = members
 		return members
+	}
+
+	// -----------------------------------------------------------------------
+	// Infer domain/range for properties implied by owl:inverseOf.
+	//
+	// If "A owl:inverseOf B" is present and A is a known object property, B
+	// is also an object property whose domain = A's range and range = A's
+	// domain (and vice-versa).  We only fill in domain/range that are not
+	// already explicitly stated.
+	// -----------------------------------------------------------------------
+
+	for propA, propB := range inverseOf {
+		aIsObjectProp := false
+		if _, ok := objectProps[propA]; ok {
+			aIsObjectProp = true
+		}
+		bIsObjectProp := false
+		if _, ok := objectProps[propB]; ok {
+			bIsObjectProp = true
+		}
+
+		if aIsObjectProp {
+			// Register propB as an object property if not yet known.
+			objectProps[propB] = struct{}{}
+			if _, exists := nodeTypes[propB]; !exists {
+				nodeTypes[propB] = graph.NodeTypeProperty
+			}
+			// Infer propB's domain from propA's ranges.
+			if len(domainOf[propB]) == 0 && len(domainUnion[propB]) == 0 {
+				for _, rng := range rangeOf[propA] {
+					domainOf[propB] = appendUnique(domainOf[propB], rng)
+				}
+				for _, rngUnion := range rangeUnion[propA] {
+					domainUnion[propB] = appendUnique(domainUnion[propB], rngUnion)
+					unionBlankNodes[rngUnion] = struct{}{}
+				}
+			}
+			// Infer propB's range from propA's domains.
+			if len(rangeOf[propB]) == 0 && len(rangeUnion[propB]) == 0 {
+				for _, dom := range domainOf[propA] {
+					rangeOf[propB] = appendUnique(rangeOf[propB], dom)
+				}
+				for _, domUnion := range domainUnion[propA] {
+					rangeUnion[propB] = appendUnique(rangeUnion[propB], domUnion)
+					unionBlankNodes[domUnion] = struct{}{}
+				}
+			}
+		}
+
+		if bIsObjectProp {
+			// Register propA as an object property if not yet known.
+			objectProps[propA] = struct{}{}
+			if _, exists := nodeTypes[propA]; !exists {
+				nodeTypes[propA] = graph.NodeTypeProperty
+			}
+			// Infer propA's domain from propB's ranges.
+			if len(domainOf[propA]) == 0 && len(domainUnion[propA]) == 0 {
+				for _, rng := range rangeOf[propB] {
+					domainOf[propA] = appendUnique(domainOf[propA], rng)
+				}
+				for _, rngUnion := range rangeUnion[propB] {
+					domainUnion[propA] = appendUnique(domainUnion[propA], rngUnion)
+					unionBlankNodes[rngUnion] = struct{}{}
+				}
+			}
+			// Infer propA's range from propB's domains.
+			if len(rangeOf[propA]) == 0 && len(rangeUnion[propA]) == 0 {
+				for _, dom := range domainOf[propB] {
+					rangeOf[propA] = appendUnique(rangeOf[propA], dom)
+				}
+				for _, domUnion := range domainUnion[propB] {
+					rangeUnion[propA] = appendUnique(rangeUnion[propA], domUnion)
+					unionBlankNodes[domUnion] = struct{}{}
+				}
+			}
+		}
 	}
 
 	// -----------------------------------------------------------------------
