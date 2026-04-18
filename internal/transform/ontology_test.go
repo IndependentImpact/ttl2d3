@@ -1487,3 +1487,263 @@ if !hasLink(gm.Links, unionID, iriC, "related to") {
 t.Error("expected edge union → C (related to)")
 }
 }
+
+// ---------------------------------------------------------------------------
+// BuildGraphModel – owl:inverseOf object property inference
+// ---------------------------------------------------------------------------
+
+// TestBuildGraphModel_InverseOfPropertyBasic verifies the core issue scenario:
+// an object property implied by owl:inverseOf produces an edge with swapped
+// domain and range.
+func TestBuildGraphModel_InverseOfPropertyBasic(t *testing.T) {
+	// hasState has explicit domain :Thing and range :State.
+	// isStateOf is declared only via "hasState owl:inverseOf isStateOf";
+	// its domain should be :State and its range should be :Thing.
+	const src = `
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix ex:   <http://example.org/inv#> .
+
+ex:Thing a owl:Class .
+ex:State a owl:Class .
+
+ex:hasState a owl:ObjectProperty ;
+    rdfs:label "hasState"@en ;
+    rdfs:domain ex:Thing ;
+    rdfs:range  ex:State ;
+    owl:inverseOf ex:isStateOf .
+`
+	g := parseTurtle(t, src, "http://example.org/inv")
+	gm, err := transform.BuildGraphModel(g)
+	if err != nil {
+		t.Fatalf("BuildGraphModel: %v", err)
+	}
+
+	const (
+		iriThing     = "http://example.org/inv#Thing"
+		iriState     = "http://example.org/inv#State"
+		iriHasState  = "http://example.org/inv#hasState"
+		iriIsStateOf = "http://example.org/inv#isStateOf"
+	)
+
+	// The forward property must still produce an edge Thing → State.
+	if !hasLink(gm.Links, iriThing, iriState, "hasState") {
+		t.Error("missing forward edge Thing → State (hasState)")
+	}
+
+	// The inverse property must produce an edge State → Thing.
+	if !hasLink(gm.Links, iriState, iriThing, "isStateOf") {
+		t.Error("missing inverse edge State → Thing (isStateOf)")
+	}
+
+	// Neither property IRI should appear as a standalone node.
+	if findNode(gm.Nodes, iriHasState) != nil {
+		t.Error("hasState should be an edge, not a node")
+	}
+	if findNode(gm.Nodes, iriIsStateOf) != nil {
+		t.Error("isStateOf should be an edge, not a node")
+	}
+
+	if err := gm.Validate(); err != nil {
+		t.Errorf("GraphModel.Validate() = %v", err)
+	}
+}
+
+// TestBuildGraphModel_InverseOfPropertyWithLabel verifies that when an explicit
+// rdfs:label is provided for the inverse property it is used in the edge label.
+func TestBuildGraphModel_InverseOfPropertyWithLabel(t *testing.T) {
+	const src = `
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix ex:   <http://example.org/invlabel#> .
+
+ex:A a owl:Class .
+ex:B a owl:Class .
+
+ex:parentOf a owl:ObjectProperty ;
+    rdfs:label "parent of"@en ;
+    rdfs:domain ex:A ;
+    rdfs:range  ex:B ;
+    owl:inverseOf ex:childOf .
+
+ex:childOf rdfs:label "child of"@en .
+`
+	g := parseTurtle(t, src, "http://example.org/invlabel")
+	gm, err := transform.BuildGraphModel(g)
+	if err != nil {
+		t.Fatalf("BuildGraphModel: %v", err)
+	}
+
+	const (
+		iriA       = "http://example.org/invlabel#A"
+		iriB       = "http://example.org/invlabel#B"
+		iriChildOf = "http://example.org/invlabel#childOf"
+	)
+
+	// Inverse edge must use its own rdfs:label.
+	if !hasLink(gm.Links, iriB, iriA, "child of") {
+		t.Error("missing inverse edge B → A (child of)")
+	}
+	if findNode(gm.Nodes, iriChildOf) != nil {
+		t.Error("childOf should be an edge, not a node")
+	}
+
+	if err := gm.Validate(); err != nil {
+		t.Errorf("GraphModel.Validate() = %v", err)
+	}
+}
+
+// TestBuildGraphModel_InverseOfBothDirections verifies that when both properties
+// explicitly declare each other as inverses, domain/range are still inferred
+// correctly and no duplicate edges are produced.
+func TestBuildGraphModel_InverseOfBothDirections(t *testing.T) {
+	const src = `
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix ex:   <http://example.org/invboth#> .
+
+ex:A a owl:Class .
+ex:B a owl:Class .
+
+ex:knows a owl:ObjectProperty ;
+    rdfs:domain ex:A ;
+    rdfs:range  ex:B ;
+    owl:inverseOf ex:isKnownBy .
+
+ex:isKnownBy a owl:ObjectProperty ;
+    owl:inverseOf ex:knows .
+`
+	g := parseTurtle(t, src, "http://example.org/invboth")
+	gm, err := transform.BuildGraphModel(g)
+	if err != nil {
+		t.Fatalf("BuildGraphModel: %v", err)
+	}
+
+	const (
+		iriA        = "http://example.org/invboth#A"
+		iriB        = "http://example.org/invboth#B"
+		iriKnows    = "http://example.org/invboth#knows"
+		iriIsKnownBy  = "http://example.org/invboth#isKnownBy"
+	)
+
+	if !hasLink(gm.Links, iriA, iriB, "knows") {
+		t.Error("missing forward edge A → B (knows)")
+	}
+	if !hasLink(gm.Links, iriB, iriA, "isKnownBy") {
+		t.Error("missing inverse edge B → A (isKnownBy)")
+	}
+
+	// No property IRI should remain as a node.
+	if findNode(gm.Nodes, iriKnows) != nil {
+		t.Error("knows should be an edge, not a node")
+	}
+	if findNode(gm.Nodes, iriIsKnownBy) != nil {
+		t.Error("isKnownBy should be an edge, not a node")
+	}
+
+	if err := gm.Validate(); err != nil {
+		t.Errorf("GraphModel.Validate() = %v", err)
+	}
+}
+
+// TestBuildGraphModel_InverseOfDoesNotOverrideExplicitDomainRange verifies that
+// when the inverse property already has its own explicit domain and range, those
+// values are not overwritten by the inference step.
+func TestBuildGraphModel_InverseOfDoesNotOverrideExplicitDomainRange(t *testing.T) {
+	const src = `
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix ex:   <http://example.org/invexplicit#> .
+
+ex:A a owl:Class .
+ex:B a owl:Class .
+ex:C a owl:Class .
+ex:D a owl:Class .
+
+ex:forward a owl:ObjectProperty ;
+    rdfs:domain ex:A ;
+    rdfs:range  ex:B ;
+    owl:inverseOf ex:backward .
+
+ex:backward a owl:ObjectProperty ;
+    rdfs:domain ex:C ;
+    rdfs:range  ex:D .
+`
+	g := parseTurtle(t, src, "http://example.org/invexplicit")
+	gm, err := transform.BuildGraphModel(g)
+	if err != nil {
+		t.Fatalf("BuildGraphModel: %v", err)
+	}
+
+	const (
+		iriA = "http://example.org/invexplicit#A"
+		iriB = "http://example.org/invexplicit#B"
+		iriC = "http://example.org/invexplicit#C"
+		iriD = "http://example.org/invexplicit#D"
+	)
+
+	// forward: A → B (unchanged).
+	if !hasLink(gm.Links, iriA, iriB, "forward") {
+		t.Error("missing forward edge A → B (forward)")
+	}
+	// backward: C → D (explicit domain/range must not be overridden).
+	if !hasLink(gm.Links, iriC, iriD, "backward") {
+		t.Error("missing backward edge C → D (backward)")
+	}
+	// The inferred inverse (B → A) must NOT appear because backward already
+	// has explicit domain/range.
+	if hasLink(gm.Links, iriB, iriA, "backward") {
+		t.Error("backward edge B → A must not be created when explicit domain/range exist")
+	}
+
+	if err := gm.Validate(); err != nil {
+		t.Errorf("GraphModel.Validate() = %v", err)
+	}
+}
+
+// TestBuildGraphModel_InverseOfNoEdgeWhenNoForwardDomainRange verifies that
+// when the forward property itself has no domain or range, no inverse edge is
+// produced (neither property can become an edge).
+func TestBuildGraphModel_InverseOfNoEdgeWhenNoForwardDomainRange(t *testing.T) {
+	const src = `
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix ex:   <http://example.org/invnone#> .
+
+ex:forward a owl:ObjectProperty ;
+    owl:inverseOf ex:backward .
+`
+	g := parseTurtle(t, src, "http://example.org/invnone")
+	gm, err := transform.BuildGraphModel(g)
+	if err != nil {
+		t.Fatalf("BuildGraphModel: %v", err)
+	}
+
+	// forward has no domain/range, so it falls back to a property node.
+	n := findNode(gm.Nodes, "http://example.org/invnone#forward")
+	if n == nil {
+		t.Fatal("forward without domain/range should be a property node")
+	}
+	if n.Type != graph.NodeTypeProperty {
+		t.Errorf("forward node Type = %q, want %q", n.Type, graph.NodeTypeProperty)
+	}
+
+	// backward was inferred as an object property but also has no domain/range,
+	// so it too falls back to a property node.
+	nb := findNode(gm.Nodes, "http://example.org/invnone#backward")
+	if nb == nil {
+		t.Fatal("backward inferred without domain/range should be a property node")
+	}
+	if nb.Type != graph.NodeTypeProperty {
+		t.Errorf("backward node Type = %q, want %q", nb.Type, graph.NodeTypeProperty)
+	}
+
+	// No links should exist.
+	if len(gm.Links) != 0 {
+		t.Errorf("expected 0 links, got %d", len(gm.Links))
+	}
+}
