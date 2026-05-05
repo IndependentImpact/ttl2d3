@@ -371,6 +371,42 @@ func TestRenderHTML_ParallelEdgesUsePath(t *testing.T) {
 	}
 }
 
+func TestRenderHTML_InversePropertyPairCurved(t *testing.T) {
+	// Inverse property pairs (A→B and B→A) must be grouped in the same
+	// undirected bundle so that both edges receive non-zero curvature and
+	// render as two distinct arcs rather than overprinting straight lines.
+	nodes := []graph.Node{
+		graph.NewNode("https://example.org/A", "A", graph.NodeTypeClass, "example"),
+		graph.NewNode("https://example.org/B", "B", graph.NodeTypeClass, "example"),
+	}
+	links := []graph.Link{
+		graph.NewLink("https://example.org/A", "https://example.org/B", "hasChild"),
+		graph.NewLink("https://example.org/B", "https://example.org/A", "hasParent"),
+	}
+	gm := graph.NewGraphModel(nodes, links, graph.Metadata{})
+	var buf bytes.Buffer
+	if err := render.RenderHTML(&gm, render.HTMLOptions{}, &buf); err != nil {
+		t.Fatalf("RenderHTML: %v", err)
+	}
+	out := buf.String()
+
+	// Both link labels must appear in the embedded JSON.
+	for _, want := range []string{`"hasChild"`, `"hasParent"`} {
+		if !strings.Contains(out, want) {
+			t.Errorf("embedded JSON missing %q", want)
+		}
+	}
+
+	// The canonical-key and reversed-flag logic must be present so that
+	// the JavaScript can apply opposite curvature to the reverse arc.
+	if !strings.Contains(out, `_canonKey`) {
+		t.Error("template must compute canonical undirected key (_canonKey) for inverse-property curvature")
+	}
+	if !strings.Contains(out, `_reversed`) {
+		t.Error("template must track edge direction (_reversed) relative to canonical key")
+	}
+}
+
 // ---------------------------------------------------------------------------
 // RenderWorkflowPlan – structural invariants
 // ---------------------------------------------------------------------------
