@@ -480,8 +480,16 @@
     }());
 
     /* ── Pre-compute parallel-edge curvature ────────────────────────────── */
-    // Group links by directed (source, target) pair and assign each a
-    // perpendicular offset so that parallel edges do not overprint.
+    // Group links by UNDIRECTED (canonical) node pair so that both same-
+    // direction parallel edges and inverse-property pairs (A→B and B→A)
+    // are placed in the same bundle and rendered as distinct curved arcs.
+    //
+    // Curvature is a perpendicular offset from the midpoint of the straight
+    // line between the two endpoints.  Because D3 computes the control-point
+    // normal from (source → target), an edge that travels in the *reverse*
+    // direction has an inverted normal.  Negating its canonical curvature
+    // therefore produces a curve that bows to the opposite visual side,
+    // giving the classic two-arc appearance for bidirectional edge pairs.
     (function () {
       // 40 px provides enough visual separation between parallel arcs without
       // making the curves appear too extreme for typical ontology graphs.
@@ -493,17 +501,27 @@
       const idxCtrs = Object.create(null);
 
       links.forEach((d) => {
-        const k = d.source + SEP + d.target;
+        // Canonical (undirected) key: always smaller IRI first so that A→B
+        // and B→A map to the same bucket.
+        const [a, b] = d.source <= d.target
+          ? [d.source, d.target]
+          : [d.target, d.source];
+        const k = a + SEP + b;
+        d._canonKey  = k;
+        d._reversed  = d.source > d.target;
         counts[k] = (counts[k] || 0) + 1;
       });
 
       links.forEach((d) => {
-        const k = d.source + SEP + d.target;
+        const k = d._canonKey;
         if (idxCtrs[k] === undefined) idxCtrs[k] = 0;
         const n = counts[k];
         const i = idxCtrs[k]++;
-        // Centre offsets at 0: n=1→[0]; n=2→[-20,20]; n=3→[-40,0,40]; etc.
-        d._curvature = (i - (n - 1) / 2) * CURVE_STEP;
+        // Centre offsets symmetrically: n=1→[0]; n=2→[-20,20]; n=3→[-40,0,40]; etc.
+        const canonCurve = (i - (n - 1) / 2) * CURVE_STEP;
+        // Reverse edges have an inverted perpendicular normal, so negate the
+        // canonical curvature to make them bow to the opposite visual side.
+        d._curvature = d._reversed ? -canonCurve : canonCurve;
         d._loopIdx   = i; // used to size self-loops distinctly
       });
     }());
