@@ -9,6 +9,7 @@ vendor/
 *.out
 coverage.html
 diagram.html
+/*.html
 
 # OS / editor
 .DS_Store
