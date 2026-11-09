@@ -99,7 +99,7 @@ func (p *rdfxmlParser) parseNodeElement(d *xml.Decoder, se xml.StartElement) (Te
 	subject := p.subjectTerm(se.Attr)
 
 	// Typed node: element name ≠ rdf:Description → emit rdf:type triple.
-	if !(se.Name.Space == rdfNS && se.Name.Local == "Description") && se.Name.Space != "" {
+	if (se.Name.Space != rdfNS || se.Name.Local != "Description") && se.Name.Space != "" {
 		p.emit(
 			subject,
 			Term{Kind: TermIRI, Value: rdfNS + "type"},
