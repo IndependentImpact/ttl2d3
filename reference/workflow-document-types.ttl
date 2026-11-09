@@ -1,0 +1,470 @@
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix ex: <https://independentimpact.org/ns/concepts#> .
+
+ex:WorkflowStepScheme a skos:ConceptScheme ;
+  skos:prefLabel "Workflow step scheme" ;
+  skos:hasTopConcept
+    ex:WorkflowStepProjectDeveloperPLA,
+    ex:WorkflowStepProjectDeveloperPRR,
+    ex:WorkflowStepProjectDeveloperVicIR,
+    ex:WorkflowStepProjectDeveloperDLR,
+    ex:WorkflowStepProjectDeveloperMR,
+    ex:WorkflowStepProjDevPDDxA,
+    ex:WorkflowStepProjDevPDDxB,
+    ex:WorkflowStepProjDevPDDxC,
+    ex:WorkflowStepProjDevCIR,
+    ex:WorkflowStepAgentAD,
+    ex:WorkflowStepAgentLA,
+    ex:WorkflowStepStandardBodyDRPRR,
+    ex:WorkflowStepStandardBodyDRPLA,
+    ex:WorkflowStepStandardBodyDRVicIR,
+    ex:WorkflowStepValidatorDRCIR,
+    ex:WorkflowStepVerifierDRMR,
+    ex:WorkflowStepVerifierDRDLR,
+    ex:WorkflowStepValidatorDRPDDxA,
+    ex:WorkflowStepValidatorDRPDDxB,
+    ex:WorkflowStepValidatorDRPDDxC .
+
+ex:DocumentTypeScheme a skos:ConceptScheme ;
+  skos:prefLabel "Document type scheme" ;
+  skos:hasTopConcept
+    ex:DocTypeDRPRR,
+    ex:DocTypePRR,
+    ex:DocTypeDRPLA,
+    ex:DocTypePLA,
+    ex:DocTypeDRCIR,
+    ex:DocTypeCIR,
+    ex:DocTypeDRMR,
+    ex:DocTypeMR,
+    ex:DocTypeDRDLR,
+    ex:DocTypeDLR,
+    ex:DocTypeDRPDDxA,
+    ex:DocTypeDRPDDxB,
+    ex:DocTypeDRPDDxC,
+    ex:DocTypePDDxA,
+    ex:DocTypePDDxB,
+    ex:DocTypePDDxC,
+    ex:DocTypeLA,
+    ex:DocTypeDRLA,
+    ex:DocTypeDRVicIR,
+    ex:DocTypeVicIR,
+    ex:DocTypeGenericDocumentReview,
+    ex:DocTypeDataset .
+
+ex:DocumentStatusScheme a skos:ConceptScheme ;
+  skos:prefLabel "Document status scheme" ;
+  skos:hasTopConcept
+    ex:DocStatusDraft,
+    ex:DocStatusPublished,
+    ex:DocStatusSubmitted .
+
+ex:DocumentStatus2Scheme a skos:ConceptScheme ;
+  skos:prefLabel "Document status2 scheme" ;
+  skos:scopeNote "UI-derived status labels (option.status2) used in Guardian workflows." ;
+  skos:hasTopConcept
+    ex:DocStatus2Draft,
+    ex:DocStatus2Submitted,
+    ex:DocStatus2Published,
+    ex:DocStatus2Issued,
+    ex:DocStatus2Reviewed,
+    ex:DocStatus2Revoked .
+
+ex:DocumentOutcomeScheme a skos:ConceptScheme ;
+  skos:prefLabel "Document outcome scheme" ;
+  skos:hasTopConcept
+    ex:DocOutcomePending,
+    ex:DocOutcomeApproved,
+    ex:DocOutcomeRejected,
+    ex:DocOutcomeCorrectionsRequested,
+    ex:DocOutcomeClarificationRequested,
+    ex:DocOutcomeReviewed,
+    ex:DocOutcomeIssued,
+    ex:DocOutcomeRevoked .
+
+ex:WorkflowStepStateScheme a skos:ConceptScheme ;
+  skos:prefLabel "Workflow step state scheme" ;
+  skos:hasTopConcept
+    ex:StepStateStart,
+    ex:StepStateInProgress,
+    ex:StepStatePendingReview,
+    ex:StepStateRetry,
+    ex:StepStateDone,
+    ex:StepStateCompleted,
+    ex:StepStateNotAllowedYet,
+    ex:StepStateReadyForRepeat,
+    ex:StepStateNotNeeded .
+
+ex:WorkflowStepProjectDeveloperPLA a skos:Concept ;
+  skos:prefLabel "Project developer submission step for Project Listing Application (PLA)" ;
+  skos:notation "rvcdb_projectDeveloper_PLA" ;
+  skos:inScheme ex:WorkflowStepScheme ;
+  skos:related ex:DocTypePLA .
+
+ex:WorkflowStepProjectDeveloperPRR a skos:Concept ;
+  skos:prefLabel "Project developer submission step for Project Registration Request (PRR)" ;
+  skos:notation "rvcdb_projectDeveloper_PRR" ;
+  skos:inScheme ex:WorkflowStepScheme ;
+  skos:related ex:DocTypePRR .
+
+ex:WorkflowStepProjectDeveloperVicIR a skos:Concept ;
+  skos:prefLabel "Project developer submission step for VIC Issuance Request (VIC-IR)" ;
+  skos:notation "rvcdb_projectDeveloper_VIC_IR" ;
+  skos:inScheme ex:WorkflowStepScheme ;
+  skos:related ex:DocTypeVicIR .
+
+ex:WorkflowStepProjectDeveloperDLR a skos:Concept ;
+  skos:prefLabel "Project developer submission step for Data Lineage Report (DLR)" ;
+  skos:notation "rvcdb_projectDeveloper_DLR" ;
+  skos:inScheme ex:WorkflowStepScheme ;
+  skos:related ex:DocTypeDLR .
+
+ex:WorkflowStepProjectDeveloperMR a skos:Concept ;
+  skos:prefLabel "Project developer submission step for Monitoring Report (MR)" ;
+  skos:notation "rvcdb_projectDeveloper_MR" ;
+  skos:inScheme ex:WorkflowStepScheme ;
+  skos:related ex:DocTypeMR .
+
+ex:WorkflowStepProjDevPDDxA a skos:Concept ;
+  skos:prefLabel "Project developer submission step for PDD Section A" ;
+  skos:notation "rvcdb_projDev_PDDxA" ;
+  skos:inScheme ex:WorkflowStepScheme ;
+  skos:related ex:DocTypePDDxA .
+
+ex:WorkflowStepProjDevPDDxB a skos:Concept ;
+  skos:prefLabel "Project developer submission step for PDD Section B" ;
+  skos:notation "rvcdb_projDev_PDDxB" ;
+  skos:inScheme ex:WorkflowStepScheme ;
+  skos:related ex:DocTypePDDxB .
+
+ex:WorkflowStepProjDevPDDxC a skos:Concept ;
+  skos:prefLabel "Project developer submission step for PDD Section C" ;
+  skos:notation "rvcdb_projDev_PDDxC" ;
+  skos:inScheme ex:WorkflowStepScheme ;
+  skos:related ex:DocTypePDDxC .
+
+ex:WorkflowStepProjDevCIR a skos:Concept ;
+  skos:prefLabel "Project developer submission step for PDD Certificate Issuance Request (CIR)" ;
+  skos:notation "rvcdb_projDev_CIR" ;
+  skos:inScheme ex:WorkflowStepScheme ;
+  skos:related ex:DocTypeCIR .
+
+ex:WorkflowStepAgentAD a skos:Concept ;
+  skos:prefLabel "Agent submission step for Agent Details (AD)" ;
+  skos:notation "rvcdb_agent_AD" ;
+  skos:inScheme ex:WorkflowStepScheme .
+
+ex:WorkflowStepAgentLA a skos:Concept ;
+  skos:prefLabel "Agent submission step for License Application (LA)" ;
+  skos:notation "rvcdb_agent_LA" ;
+  skos:inScheme ex:WorkflowStepScheme ;
+  skos:related ex:DocTypeLA .
+
+ex:WorkflowStepStandardBodyDRPRR a skos:Concept ;
+  skos:prefLabel "Standard body review step for DR-PRR" ;
+  skos:notation "rvcdb_standardBody_DR_PRR" ;
+  skos:inScheme ex:WorkflowStepScheme ;
+  skos:related ex:DocTypeDRPRR .
+
+ex:WorkflowStepStandardBodyDRPLA a skos:Concept ;
+  skos:prefLabel "Standard body review step for DR-PLA" ;
+  skos:notation "rvcdb_standardBody_DR_PLA" ;
+  skos:inScheme ex:WorkflowStepScheme ;
+  skos:related ex:DocTypeDRPLA .
+
+ex:WorkflowStepStandardBodyDRVicIR a skos:Concept ;
+  skos:prefLabel "Standard body review step for DR-VIC-IR" ;
+  skos:notation "rvcdb_standardBody_DR_VIC_IR" ;
+  skos:inScheme ex:WorkflowStepScheme ;
+  skos:related ex:DocTypeDRVicIR .
+
+ex:WorkflowStepValidatorDRCIR a skos:Concept ;
+  skos:prefLabel "Validator review step for DR-CIR" ;
+  skos:notation "rvcdb_vldtr_DR_CIR" ;
+  skos:inScheme ex:WorkflowStepScheme ;
+  skos:related ex:DocTypeDRCIR .
+
+ex:WorkflowStepVerifierDRMR a skos:Concept ;
+  skos:prefLabel "Verifier review step for DR-MR" ;
+  skos:notation "rvcdb_verifier_DR_MR" ;
+  skos:inScheme ex:WorkflowStepScheme ;
+  skos:related ex:DocTypeDRMR .
+
+ex:WorkflowStepVerifierDRDLR a skos:Concept ;
+  skos:prefLabel "Verifier review step for DR-DLR" ;
+  skos:notation "rvcdb_verifier_DR_DLR" ;
+  skos:inScheme ex:WorkflowStepScheme ;
+  skos:related ex:DocTypeDRDLR .
+
+ex:WorkflowStepValidatorDRPDDxA a skos:Concept ;
+  skos:prefLabel "Validator review step for DR-PDDxA" ;
+  skos:notation "rvcdb_vldtr_DR_PDDxA" ;
+  skos:inScheme ex:WorkflowStepScheme ;
+  skos:related ex:DocTypeDRPDDxA .
+
+ex:WorkflowStepValidatorDRPDDxB a skos:Concept ;
+  skos:prefLabel "Validator review step for DR-PDDxB" ;
+  skos:notation "rvcdb_vldtr_DR_PDDxB" ;
+  skos:inScheme ex:WorkflowStepScheme ;
+  skos:related ex:DocTypeDRPDDxB .
+
+ex:WorkflowStepValidatorDRPDDxC a skos:Concept ;
+  skos:prefLabel "Validator review step for DR-PDDxC" ;
+  skos:notation "rvcdb_vldtr_DR_PDDxC" ;
+  skos:inScheme ex:WorkflowStepScheme ;
+  skos:related ex:DocTypeDRPDDxC .
+
+ex:DocTypeDRPRR a skos:Concept ;
+  skos:prefLabel "Document Review: Project Registration Request" ;
+  skos:notation "DR-PRR" ;
+  skos:scopeNote "Abbreviation: DR-PRR = Document Review: Project Registration Request." ;
+  skos:inScheme ex:DocumentTypeScheme .
+
+ex:DocTypePRR a skos:Concept ;
+  skos:prefLabel "Project Registration Request" ;
+  skos:notation "PRR" ;
+  skos:scopeNote "Abbreviation: PRR = Project Registration Request." ;
+  skos:inScheme ex:DocumentTypeScheme .
+
+ex:DocTypeDRPLA a skos:Concept ;
+  skos:prefLabel "Document Review: Project Listing Application" ;
+  skos:notation "DR-PLA" ;
+  skos:scopeNote "Abbreviation: DR-PLA = Document Review: Project Listing Application." ;
+  skos:inScheme ex:DocumentTypeScheme .
+
+ex:DocTypePLA a skos:Concept ;
+  skos:prefLabel "Project Listing Application" ;
+  skos:notation "PLA" ;
+  skos:scopeNote "Abbreviation: PLA = Project Listing Application." ;
+  skos:inScheme ex:DocumentTypeScheme .
+
+ex:DocTypeDRCIR a skos:Concept ;
+  skos:prefLabel "Document Review: PDD Certificate Issuance Request" ;
+  skos:notation "DR-CIR" ;
+  skos:scopeNote "Abbreviation: DR-CIR = Document Review: PDD Certificate Issuance Request." ;
+  skos:inScheme ex:DocumentTypeScheme .
+
+ex:DocTypeCIR a skos:Concept ;
+  skos:prefLabel "PDD Certificate Issuance Request" ;
+  skos:notation "CIR" ;
+  skos:scopeNote "Abbreviation: CIR = PDD Certificate Issuance Request." ;
+  skos:inScheme ex:DocumentTypeScheme .
+
+ex:DocTypeDRMR a skos:Concept ;
+  skos:prefLabel "Document Review: Monitoring Report" ;
+  skos:notation "DR-MR" ;
+  skos:scopeNote "Abbreviation: DR-MR = Document Review: Monitoring Report." ;
+  skos:inScheme ex:DocumentTypeScheme .
+
+ex:DocTypeMR a skos:Concept ;
+  skos:prefLabel "Monitoring Report" ;
+  skos:notation "MR" ;
+  skos:scopeNote "Abbreviation: MR = Monitoring Report." ;
+  skos:inScheme ex:DocumentTypeScheme .
+
+ex:DocTypeDRDLR a skos:Concept ;
+  skos:prefLabel "Document Review: Data Lineage Report" ;
+  skos:notation "DR-DLR" ;
+  skos:scopeNote "Abbreviation: DR-DLR = Document Review: Data Lineage Report." ;
+  skos:inScheme ex:DocumentTypeScheme .
+
+ex:DocTypeDLR a skos:Concept ;
+  skos:prefLabel "Data Lineage Report" ;
+  skos:notation "DLR" ;
+  skos:scopeNote "Abbreviation: DLR = Data Lineage Report." ;
+  skos:inScheme ex:DocumentTypeScheme .
+
+ex:DocTypeDRPDDxA a skos:Concept ;
+  skos:prefLabel "Document Review: PDD Section A" ;
+  skos:notation "DR-PDDxA" ;
+  skos:scopeNote "Abbreviation: DR-PDDxA = Document Review: PDD Section A." ;
+  skos:inScheme ex:DocumentTypeScheme .
+
+ex:DocTypeDRPDDxB a skos:Concept ;
+  skos:prefLabel "Document Review: PDD Section B" ;
+  skos:notation "DR-PDDxB" ;
+  skos:scopeNote "Abbreviation: DR-PDDxB = Document Review: PDD Section B." ;
+  skos:inScheme ex:DocumentTypeScheme .
+
+ex:DocTypeDRPDDxC a skos:Concept ;
+  skos:prefLabel "Document Review: PDD Section C" ;
+  skos:notation "DR-PDDxC" ;
+  skos:scopeNote "Abbreviation: DR-PDDxC = Document Review: PDD Section C." ;
+  skos:inScheme ex:DocumentTypeScheme .
+
+ex:DocTypePDDxA a skos:Concept ;
+  skos:prefLabel "PDD Section A - Description of Project" ;
+  skos:notation "PDD-XA" ;
+  skos:scopeNote "Abbreviation: PDD-XA = PDD Section A - Description of Project." ;
+  skos:inScheme ex:DocumentTypeScheme .
+
+ex:DocTypePDDxB a skos:Concept ;
+  skos:prefLabel "PDD Section B - Methodologies" ;
+  skos:notation "PDD-XB" ;
+  skos:scopeNote "Abbreviation: PDD-XB = PDD Section B - Methodologies." ;
+  skos:inScheme ex:DocumentTypeScheme .
+
+ex:DocTypePDDxC a skos:Concept ;
+  skos:prefLabel "PDD Section C - Stakeholder Engagement" ;
+  skos:notation "PDD-XC" ;
+  skos:scopeNote "Abbreviation: PDD-XC = PDD Section C - Stakeholder Engagement." ;
+  skos:inScheme ex:DocumentTypeScheme .
+
+ex:DocTypeLA a skos:Concept ;
+  skos:prefLabel "License Application" ;
+  skos:notation "LA" ;
+  skos:scopeNote "Abbreviation: LA = License Application." ;
+  skos:inScheme ex:DocumentTypeScheme .
+
+ex:DocTypeDRLA a skos:Concept ;
+  skos:prefLabel "Document Review: License Application" ;
+  skos:scopeNote "Abbreviation: DR-LA = Document Review: License Application." ;
+  skos:inScheme ex:DocumentTypeScheme .
+
+ex:DocTypeDRVicIR a skos:Concept ;
+  skos:prefLabel "Document Review: VIC Issuance Request" ;
+  skos:scopeNote "Abbreviation: DR-VIC-IR = Document Review: VIC Issuance Request." ;
+  skos:inScheme ex:DocumentTypeScheme .
+
+ex:DocTypeVicIR a skos:Concept ;
+  skos:prefLabel "VIC Issuance Request" ;
+  skos:notation "VIC-IR" ;
+  skos:scopeNote "Abbreviation: VIC-IR = VIC Issuance Request." ;
+  skos:inScheme ex:DocumentTypeScheme .
+
+ex:DocTypeGenericDocumentReview a skos:Concept ;
+  skos:prefLabel "Generic Document Review" ;
+  skos:inScheme ex:DocumentTypeScheme .
+
+ex:DocTypeDataset a skos:Concept ;
+  skos:prefLabel "Dataset" ;
+  skos:inScheme ex:DocumentTypeScheme .
+
+ex:DocStatusDraft a skos:Concept ;
+  skos:prefLabel "Draft" ;
+  skos:notation "DRAFT" ;
+  skos:inScheme ex:DocumentStatusScheme .
+
+ex:DocStatusPublished a skos:Concept ;
+  skos:prefLabel "Published" ;
+  skos:notation "PUBLISHED" ;
+  skos:inScheme ex:DocumentStatusScheme .
+
+ex:DocStatusSubmitted a skos:Concept ;
+  skos:prefLabel "Submitted" ;
+  skos:notation "SUBMITTED" ;
+  skos:inScheme ex:DocumentStatusScheme .
+
+ex:DocStatus2Draft a skos:Concept ;
+  skos:prefLabel "Draft" ;
+  skos:notation "DRAFT" ;
+  skos:inScheme ex:DocumentStatus2Scheme .
+
+ex:DocStatus2Submitted a skos:Concept ;
+  skos:prefLabel "Submitted" ;
+  skos:notation "SUBMITTED" ;
+  skos:inScheme ex:DocumentStatus2Scheme .
+
+ex:DocStatus2Published a skos:Concept ;
+  skos:prefLabel "Published" ;
+  skos:notation "PUBLISHED" ;
+  skos:inScheme ex:DocumentStatus2Scheme .
+
+ex:DocStatus2Issued a skos:Concept ;
+  skos:prefLabel "Issued" ;
+  skos:notation "ISSUED" ;
+  skos:inScheme ex:DocumentStatus2Scheme .
+
+ex:DocStatus2Reviewed a skos:Concept ;
+  skos:prefLabel "Reviewed" ;
+  skos:notation "REVIEWED" ;
+  skos:inScheme ex:DocumentStatus2Scheme .
+
+ex:DocStatus2Revoked a skos:Concept ;
+  skos:prefLabel "Revoked" ;
+  skos:notation "REVOKED" ;
+  skos:inScheme ex:DocumentStatus2Scheme .
+
+ex:DocOutcomePending a skos:Concept ;
+  skos:prefLabel "Pending" ;
+  skos:notation "PENDING" ;
+  skos:inScheme ex:DocumentOutcomeScheme .
+
+ex:DocOutcomeApproved a skos:Concept ;
+  skos:prefLabel "Approved" ;
+  skos:notation "APPROVED" ;
+  skos:inScheme ex:DocumentOutcomeScheme .
+
+ex:DocOutcomeRejected a skos:Concept ;
+  skos:prefLabel "Rejected" ;
+  skos:notation "REJECTED" ;
+  skos:inScheme ex:DocumentOutcomeScheme .
+
+ex:DocOutcomeCorrectionsRequested a skos:Concept ;
+  skos:prefLabel "Request corrections" ;
+  skos:notation "REQUEST_CORRECTIONS" ;
+  skos:inScheme ex:DocumentOutcomeScheme .
+
+ex:DocOutcomeClarificationRequested a skos:Concept ;
+  skos:prefLabel "Request clarification" ;
+  skos:notation "REQUEST_CLARIFICATION" ;
+  skos:inScheme ex:DocumentOutcomeScheme .
+
+ex:DocOutcomeReviewed a skos:Concept ;
+  skos:prefLabel "Reviewed" ;
+  skos:notation "REVIEWED" ;
+  skos:inScheme ex:DocumentOutcomeScheme .
+
+ex:DocOutcomeIssued a skos:Concept ;
+  skos:prefLabel "Issued" ;
+  skos:notation "ISSUED" ;
+  skos:inScheme ex:DocumentOutcomeScheme .
+
+ex:DocOutcomeRevoked a skos:Concept ;
+  skos:prefLabel "Revoked" ;
+  skos:notation "REVOKED" ;
+  skos:inScheme ex:DocumentOutcomeScheme .
+
+ex:StepStateStart a skos:Concept ;
+  skos:prefLabel "Start" ;
+  skos:notation "START" ;
+  skos:inScheme ex:WorkflowStepStateScheme .
+
+ex:StepStateInProgress a skos:Concept ;
+  skos:prefLabel "In progress" ;
+  skos:notation "IN_PROGRESS" ;
+  skos:inScheme ex:WorkflowStepStateScheme .
+
+ex:StepStatePendingReview a skos:Concept ;
+  skos:prefLabel "Pending review" ;
+  skos:notation "PENDING_REVIEW" ;
+  skos:inScheme ex:WorkflowStepStateScheme .
+
+ex:StepStateRetry a skos:Concept ;
+  skos:prefLabel "Retry" ;
+  skos:notation "RETRY" ;
+  skos:inScheme ex:WorkflowStepStateScheme .
+
+ex:StepStateDone a skos:Concept ;
+  skos:prefLabel "Done" ;
+  skos:notation "DONE" ;
+  skos:inScheme ex:WorkflowStepStateScheme .
+
+ex:StepStateCompleted a skos:Concept ;
+  skos:prefLabel "Completed" ;
+  skos:notation "COMPLETED" ;
+  skos:inScheme ex:WorkflowStepStateScheme .
+
+ex:StepStateNotAllowedYet a skos:Concept ;
+  skos:prefLabel "Not allowed yet" ;
+  skos:notation "NOT_ALLOWED_YET" ;
+  skos:inScheme ex:WorkflowStepStateScheme .
+
+ex:StepStateReadyForRepeat a skos:Concept ;
+  skos:prefLabel "Ready for repeat" ;
+  skos:notation "READY_FOR_REPEAT" ;
+  skos:inScheme ex:WorkflowStepStateScheme .
+
+ex:StepStateNotNeeded a skos:Concept ;
+  skos:prefLabel "Not needed" ;
+  skos:notation "NOT_NEEDED" ;
+  skos:inScheme ex:WorkflowStepStateScheme .
