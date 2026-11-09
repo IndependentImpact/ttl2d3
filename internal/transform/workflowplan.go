@@ -108,9 +108,10 @@ func BuildWorkflowModel(g *parser.Graph) (*WorkflowModel, error) {
 		if subj == "" || pred == "" {
 			continue
 		}
-		if t.Object.Kind == parser.TermIRI {
+		switch t.Object.Kind {
+		case parser.TermIRI:
 			addObjTriple(subj, pred, t.Object.Value)
-		} else if t.Object.Kind == parser.TermLiteral {
+		case parser.TermLiteral:
 			addLitTriple(subj, pred, t.Object.Value)
 		}
 	}
