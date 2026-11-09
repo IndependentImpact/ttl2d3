@@ -1,0 +1,334 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix indimp: <https://independentimpact.org/ns/indimp#> .
+@prefix ex: <https://independentimpact.org/ns/concepts#> .
+
+ex:IndependentImpactWorkflowPlan a prov:Plan, skos:OrderedCollection, indimp:WorkflowPlan ;
+  skos:prefLabel "Independent Impact workflow plan" ;
+  rdfs:comment "Refinement in progress. First rule: every document review (DR) follows the submission step for that document. This is modeled as ordered submission→review sequences with explicit required outcomes for transitions." ;
+  skos:member
+    ex:SeqPLA_DRPLA,
+    ex:SeqPRR_DRPRR,
+    ex:SeqVICIR_DRVICIR,
+    ex:SeqPDDxA_DRPDDxA,
+    ex:SeqPDDxB_DRPDDxB,
+    ex:SeqPDDxC_DRPDDxC,
+    ex:SeqCIR_DRCIR,
+    ex:SeqDLR_DRDLR,
+    ex:SeqMR_DRMR ;
+  indimp:hasTransition
+    ex:TransPLA_DRPLA,
+    ex:TransDRPLA_to_PLA_Corrections,
+    ex:TransDRPLA_to_PLA_Clarification,
+    ex:TransDRPLA_to_PRR,
+    ex:TransPRR_DRPRR,
+    ex:TransDRPRR_to_PRR_Corrections,
+    ex:TransDRPRR_to_PRR_Clarification,
+    ex:TransDRPRR_to_VICIR,
+    ex:TransDRPRR_to_PDDxA,
+    ex:TransDRPRR_to_PDDxB,
+    ex:TransDRPRR_to_PDDxC,
+    ex:TransVICIR_DRVICIR,
+    ex:TransDRVICIR_to_VICIR_Corrections,
+    ex:TransDRVICIR_to_VICIR_Clarification,
+    ex:TransPDDxA_DRPDDxA,
+    ex:TransDRPDDxA_to_PDDxA_Corrections,
+    ex:TransDRPDDxA_to_PDDxA_Clarification,
+    ex:TransPDDxB_DRPDDxB,
+    ex:TransDRPDDxB_to_PDDxB_Corrections,
+    ex:TransDRPDDxB_to_PDDxB_Clarification,
+    ex:TransPDDxC_DRPDDxC,
+    ex:TransDRPDDxC_to_PDDxC_Corrections,
+    ex:TransDRPDDxC_to_PDDxC_Clarification,
+    ex:TransPDDGate_to_CIR,
+    ex:TransCIR_DRCIR,
+    ex:TransDRCIR_to_CIR_Corrections,
+    ex:TransDRCIR_to_CIR_Clarification,
+    ex:TransDLR_DRDLR,
+    ex:TransDRDLR_to_DLR_Corrections,
+    ex:TransDRDLR_to_DLR_Clarification,
+    ex:TransMR_DRMR,
+    ex:TransDRMR_to_MR_Corrections,
+    ex:TransDRMR_to_MR_Clarification ;
+  indimp:hasGate
+    ex:PDD_AllApproved .
+
+ex:SeqPLA_DRPLA a skos:OrderedCollection ;
+  skos:prefLabel "PLA submission → DR-PLA review" ;
+  skos:memberList (
+    ex:WorkflowStepProjectDeveloperPLA
+    ex:WorkflowStepStandardBodyDRPLA
+  ) .
+
+ex:SeqPRR_DRPRR a skos:OrderedCollection ;
+  skos:prefLabel "PRR submission → DR-PRR review" ;
+  skos:memberList (
+    ex:WorkflowStepProjectDeveloperPRR
+    ex:WorkflowStepStandardBodyDRPRR
+  ) .
+
+ex:SeqVICIR_DRVICIR a skos:OrderedCollection ;
+  skos:prefLabel "VIC-IR submission → DR-VIC-IR review" ;
+  skos:memberList (
+    ex:WorkflowStepProjectDeveloperVicIR
+    ex:WorkflowStepStandardBodyDRVicIR
+  ) .
+
+ex:SeqPDDxA_DRPDDxA a skos:OrderedCollection ;
+  skos:prefLabel "PDD-XA submission → DR-PDDxA review" ;
+  skos:memberList (
+    ex:WorkflowStepProjDevPDDxA
+    ex:WorkflowStepValidatorDRPDDxA
+  ) .
+
+ex:SeqPDDxB_DRPDDxB a skos:OrderedCollection ;
+  skos:prefLabel "PDD-XB submission → DR-PDDxB review" ;
+  skos:memberList (
+    ex:WorkflowStepProjDevPDDxB
+    ex:WorkflowStepValidatorDRPDDxB
+  ) .
+
+ex:SeqPDDxC_DRPDDxC a skos:OrderedCollection ;
+  skos:prefLabel "PDD-XC submission → DR-PDDxC review" ;
+  skos:memberList (
+    ex:WorkflowStepProjDevPDDxC
+    ex:WorkflowStepValidatorDRPDDxC
+  ) .
+
+ex:SeqCIR_DRCIR a skos:OrderedCollection ;
+  skos:prefLabel "CIR submission → DR-CIR review" ;
+  skos:memberList (
+    ex:WorkflowStepProjDevCIR
+    ex:WorkflowStepValidatorDRCIR
+  ) .
+
+ex:SeqDLR_DRDLR a skos:OrderedCollection ;
+  skos:prefLabel "DLR submission → DR-DLR review" ;
+  skos:memberList (
+    ex:WorkflowStepProjectDeveloperDLR
+    ex:WorkflowStepVerifierDRDLR
+  ) .
+
+ex:SeqMR_DRMR a skos:OrderedCollection ;
+  skos:prefLabel "MR submission → DR-MR review" ;
+  skos:memberList (
+    ex:WorkflowStepProjectDeveloperMR
+    ex:WorkflowStepVerifierDRMR
+  ) .
+
+ex:WorkflowStepProjectDeveloperPLA a skos:Concept ;
+  indimp:isStartStep true .
+ex:WorkflowStepStandardBodyDRPLA a skos:Concept .
+ex:WorkflowStepProjectDeveloperPRR a skos:Concept ;
+  indimp:isStartStep true .
+ex:WorkflowStepStandardBodyDRPRR a skos:Concept .
+ex:WorkflowStepProjectDeveloperVicIR a skos:Concept ;
+  indimp:isStartStep true .
+ex:WorkflowStepStandardBodyDRVicIR a skos:Concept .
+ex:WorkflowStepProjDevPDDxA a skos:Concept ;
+  indimp:isStartStep true .
+ex:WorkflowStepValidatorDRPDDxA a skos:Concept .
+ex:WorkflowStepProjDevPDDxB a skos:Concept ;
+  indimp:isStartStep true .
+ex:WorkflowStepValidatorDRPDDxB a skos:Concept .
+ex:WorkflowStepProjDevPDDxC a skos:Concept ;
+  indimp:isStartStep true .
+ex:WorkflowStepValidatorDRPDDxC a skos:Concept .
+ex:WorkflowStepProjDevCIR a skos:Concept ;
+  indimp:isStartStep true .
+ex:WorkflowStepValidatorDRCIR a skos:Concept .
+ex:WorkflowStepProjectDeveloperDLR a skos:Concept ;
+  indimp:isStartStep true .
+ex:WorkflowStepVerifierDRDLR a skos:Concept .
+ex:WorkflowStepProjectDeveloperMR a skos:Concept ;
+  indimp:isStartStep true .
+ex:WorkflowStepVerifierDRMR a skos:Concept .
+ex:StepStateInProgress a skos:Concept .
+ex:DocOutcomeApproved a skos:Concept .
+ex:DocOutcomeCorrectionsRequested a skos:Concept .
+ex:DocOutcomeClarificationRequested a skos:Concept .
+
+ex:TransPLA_DRPLA a indimp:WorkflowTransition ;
+  indimp:fromStep ex:WorkflowStepProjectDeveloperPLA ;
+  indimp:toStep ex:WorkflowStepStandardBodyDRPLA ;
+  indimp:requiresState ex:StepStateInProgress .
+
+ex:TransPRR_DRPRR a indimp:WorkflowTransition ;
+  indimp:fromStep ex:WorkflowStepProjectDeveloperPRR ;
+  indimp:toStep ex:WorkflowStepStandardBodyDRPRR ;
+  indimp:requiresState ex:StepStateInProgress .
+
+ex:TransPDDxA_DRPDDxA a indimp:WorkflowTransition ;
+  indimp:fromStep ex:WorkflowStepProjDevPDDxA ;
+  indimp:toStep ex:WorkflowStepValidatorDRPDDxA ;
+  indimp:requiresState ex:StepStateInProgress .
+
+ex:TransPDDxB_DRPDDxB a indimp:WorkflowTransition ;
+  indimp:fromStep ex:WorkflowStepProjDevPDDxB ;
+  indimp:toStep ex:WorkflowStepValidatorDRPDDxB ;
+  indimp:requiresState ex:StepStateInProgress .
+
+ex:TransPDDxC_DRPDDxC a indimp:WorkflowTransition ;
+  indimp:fromStep ex:WorkflowStepProjDevPDDxC ;
+  indimp:toStep ex:WorkflowStepValidatorDRPDDxC ;
+  indimp:requiresState ex:StepStateInProgress .
+
+ex:TransCIR_DRCIR a indimp:WorkflowTransition ;
+  indimp:fromStep ex:WorkflowStepProjDevCIR ;
+  indimp:toStep ex:WorkflowStepValidatorDRCIR ;
+  indimp:requiresState ex:StepStateInProgress .
+
+ex:TransDLR_DRDLR a indimp:WorkflowTransition ;
+  indimp:fromStep ex:WorkflowStepProjectDeveloperDLR ;
+  indimp:toStep ex:WorkflowStepVerifierDRDLR ;
+  indimp:requiresState ex:StepStateInProgress .
+
+ex:TransMR_DRMR a indimp:WorkflowTransition ;
+  indimp:fromStep ex:WorkflowStepProjectDeveloperMR ;
+  indimp:toStep ex:WorkflowStepVerifierDRMR ;
+  indimp:requiresState ex:StepStateInProgress .
+
+ex:TransDRPLA_to_PRR a indimp:WorkflowTransition ;
+  indimp:fromStep ex:WorkflowStepStandardBodyDRPLA ;
+  indimp:toStep ex:WorkflowStepProjectDeveloperPRR ;
+  indimp:requiresOutcome ex:DocOutcomeApproved .
+
+ex:TransDRPRR_to_VICIR a indimp:WorkflowTransition ;
+  indimp:fromStep ex:WorkflowStepStandardBodyDRPRR ;
+  indimp:toStep ex:WorkflowStepProjectDeveloperVicIR ;
+  indimp:requiresOutcome ex:DocOutcomeApproved .
+
+ex:TransDRPRR_to_PDDxA a indimp:WorkflowTransition ;
+  indimp:fromStep ex:WorkflowStepStandardBodyDRPRR ;
+  indimp:toStep ex:WorkflowStepProjDevPDDxA ;
+  indimp:requiresOutcome ex:DocOutcomeApproved .
+
+ex:TransDRPRR_to_PDDxB a indimp:WorkflowTransition ;
+  indimp:fromStep ex:WorkflowStepStandardBodyDRPRR ;
+  indimp:toStep ex:WorkflowStepProjDevPDDxB ;
+  indimp:requiresOutcome ex:DocOutcomeApproved .
+
+ex:TransDRPRR_to_PDDxC a indimp:WorkflowTransition ;
+  indimp:fromStep ex:WorkflowStepStandardBodyDRPRR ;
+  indimp:toStep ex:WorkflowStepProjDevPDDxC ;
+  indimp:requiresOutcome ex:DocOutcomeApproved .
+
+ex:TransVICIR_DRVICIR a indimp:WorkflowTransition ;
+  indimp:fromStep ex:WorkflowStepProjectDeveloperVicIR ;
+  indimp:toStep ex:WorkflowStepStandardBodyDRVicIR ;
+  indimp:requiresState ex:StepStateInProgress .
+
+ex:TransDRVICIR_to_VICIR_Corrections a indimp:WorkflowTransition ;
+  indimp:fromStep ex:WorkflowStepStandardBodyDRVicIR ;
+  indimp:toStep ex:WorkflowStepProjectDeveloperVicIR ;
+  indimp:requiresOutcome ex:DocOutcomeCorrectionsRequested .
+
+ex:TransDRVICIR_to_VICIR_Clarification a indimp:WorkflowTransition ;
+  indimp:fromStep ex:WorkflowStepStandardBodyDRVicIR ;
+  indimp:toStep ex:WorkflowStepProjectDeveloperVicIR ;
+  indimp:requiresOutcome ex:DocOutcomeClarificationRequested .
+
+ex:TransDRPLA_to_PLA_Corrections a indimp:WorkflowTransition ;
+  indimp:fromStep ex:WorkflowStepStandardBodyDRPLA ;
+  indimp:toStep ex:WorkflowStepProjectDeveloperPLA ;
+  indimp:requiresOutcome ex:DocOutcomeCorrectionsRequested .
+
+ex:TransDRPLA_to_PLA_Clarification a indimp:WorkflowTransition ;
+  indimp:fromStep ex:WorkflowStepStandardBodyDRPLA ;
+  indimp:toStep ex:WorkflowStepProjectDeveloperPLA ;
+  indimp:requiresOutcome ex:DocOutcomeClarificationRequested .
+
+ex:TransDRPRR_to_PRR_Corrections a indimp:WorkflowTransition ;
+  indimp:fromStep ex:WorkflowStepStandardBodyDRPRR ;
+  indimp:toStep ex:WorkflowStepProjectDeveloperPRR ;
+  indimp:requiresOutcome ex:DocOutcomeCorrectionsRequested .
+
+ex:TransDRPRR_to_PRR_Clarification a indimp:WorkflowTransition ;
+  indimp:fromStep ex:WorkflowStepStandardBodyDRPRR ;
+  indimp:toStep ex:WorkflowStepProjectDeveloperPRR ;
+  indimp:requiresOutcome ex:DocOutcomeClarificationRequested .
+
+ex:TransDRPDDxA_to_PDDxA_Corrections a indimp:WorkflowTransition ;
+  indimp:fromStep ex:WorkflowStepValidatorDRPDDxA ;
+  indimp:toStep ex:WorkflowStepProjDevPDDxA ;
+  indimp:requiresOutcome ex:DocOutcomeCorrectionsRequested .
+
+ex:TransDRPDDxA_to_PDDxA_Clarification a indimp:WorkflowTransition ;
+  indimp:fromStep ex:WorkflowStepValidatorDRPDDxA ;
+  indimp:toStep ex:WorkflowStepProjDevPDDxA ;
+  indimp:requiresOutcome ex:DocOutcomeClarificationRequested .
+
+ex:TransDRPDDxB_to_PDDxB_Corrections a indimp:WorkflowTransition ;
+  indimp:fromStep ex:WorkflowStepValidatorDRPDDxB ;
+  indimp:toStep ex:WorkflowStepProjDevPDDxB ;
+  indimp:requiresOutcome ex:DocOutcomeCorrectionsRequested .
+
+ex:TransDRPDDxB_to_PDDxB_Clarification a indimp:WorkflowTransition ;
+  indimp:fromStep ex:WorkflowStepValidatorDRPDDxB ;
+  indimp:toStep ex:WorkflowStepProjDevPDDxB ;
+  indimp:requiresOutcome ex:DocOutcomeClarificationRequested .
+
+ex:TransDRPDDxC_to_PDDxC_Corrections a indimp:WorkflowTransition ;
+  indimp:fromStep ex:WorkflowStepValidatorDRPDDxC ;
+  indimp:toStep ex:WorkflowStepProjDevPDDxC ;
+  indimp:requiresOutcome ex:DocOutcomeCorrectionsRequested .
+
+ex:TransDRPDDxC_to_PDDxC_Clarification a indimp:WorkflowTransition ;
+  indimp:fromStep ex:WorkflowStepValidatorDRPDDxC ;
+  indimp:toStep ex:WorkflowStepProjDevPDDxC ;
+  indimp:requiresOutcome ex:DocOutcomeClarificationRequested .
+
+ex:PDD_AllApproved a indimp:WorkflowGate ;
+  rdfs:comment "Gate satisfied once DR-PDDxA, DR-PDDxB, and DR-PDDxC are approved." ;
+  indimp:hasGateRequirement
+    ex:ReqDRPDDxA_Approved,
+    ex:ReqDRPDDxB_Approved,
+    ex:ReqDRPDDxC_Approved .
+
+ex:ReqDRPDDxA_Approved a indimp:GateRequirement ;
+  indimp:gateStep ex:WorkflowStepValidatorDRPDDxA ;
+  indimp:requiresOutcome ex:DocOutcomeApproved .
+
+ex:ReqDRPDDxB_Approved a indimp:GateRequirement ;
+  indimp:gateStep ex:WorkflowStepValidatorDRPDDxB ;
+  indimp:requiresOutcome ex:DocOutcomeApproved .
+
+ex:ReqDRPDDxC_Approved a indimp:GateRequirement ;
+  indimp:gateStep ex:WorkflowStepValidatorDRPDDxC ;
+  indimp:requiresOutcome ex:DocOutcomeApproved .
+
+ex:TransPDDGate_to_CIR a indimp:WorkflowTransition ;
+  indimp:fromGate ex:PDD_AllApproved ;
+  indimp:toStep ex:WorkflowStepProjDevCIR .
+
+ex:TransDRCIR_to_CIR_Corrections a indimp:WorkflowTransition ;
+  indimp:fromStep ex:WorkflowStepValidatorDRCIR ;
+  indimp:toStep ex:WorkflowStepProjDevCIR ;
+  indimp:requiresOutcome ex:DocOutcomeCorrectionsRequested .
+
+ex:TransDRCIR_to_CIR_Clarification a indimp:WorkflowTransition ;
+  indimp:fromStep ex:WorkflowStepValidatorDRCIR ;
+  indimp:toStep ex:WorkflowStepProjDevCIR ;
+  indimp:requiresOutcome ex:DocOutcomeClarificationRequested .
+
+ex:TransDRDLR_to_DLR_Corrections a indimp:WorkflowTransition ;
+  indimp:fromStep ex:WorkflowStepVerifierDRDLR ;
+  indimp:toStep ex:WorkflowStepProjectDeveloperDLR ;
+  indimp:requiresOutcome ex:DocOutcomeCorrectionsRequested .
+
+ex:TransDRDLR_to_DLR_Clarification a indimp:WorkflowTransition ;
+  indimp:fromStep ex:WorkflowStepVerifierDRDLR ;
+  indimp:toStep ex:WorkflowStepProjectDeveloperDLR ;
+  indimp:requiresOutcome ex:DocOutcomeClarificationRequested .
+
+ex:TransDRMR_to_MR_Corrections a indimp:WorkflowTransition ;
+  indimp:fromStep ex:WorkflowStepVerifierDRMR ;
+  indimp:toStep ex:WorkflowStepProjectDeveloperMR ;
+  indimp:requiresOutcome ex:DocOutcomeCorrectionsRequested .
+
+ex:TransDRMR_to_MR_Clarification a indimp:WorkflowTransition ;
+  indimp:fromStep ex:WorkflowStepVerifierDRMR ;
+  indimp:toStep ex:WorkflowStepProjectDeveloperMR ;
+  indimp:requiresOutcome ex:DocOutcomeClarificationRequested .

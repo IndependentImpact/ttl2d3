@@ -1,0 +1,22 @@
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix ex: <https://independentimpact.org/ns/concepts#> .
+
+ex:ReviewerDecisionScheme a skos:ConceptScheme ;
+  skos:prefLabel "Reviewer decision scheme" ;
+  skos:hasTopConcept ex:Approve, ex:ForwardActionRequest, ex:CorrectiveActionRequest, ex:Reject .
+
+ex:Approve a skos:Concept ;
+  skos:prefLabel "Approve" ;
+  skos:inScheme ex:ReviewerDecisionScheme .
+
+ex:ForwardActionRequest a skos:Concept ;
+  skos:prefLabel "Forward action request" ;
+  skos:inScheme ex:ReviewerDecisionScheme .
+
+ex:CorrectiveActionRequest a skos:Concept ;
+  skos:prefLabel "Corrective action request" ;
+  skos:inScheme ex:ReviewerDecisionScheme .
+
+ex:Reject a skos:Concept ;
+  skos:prefLabel "Reject" ;
+  skos:inScheme ex:ReviewerDecisionScheme .
