@@ -135,10 +135,10 @@ func RenderHTML(gm *graph.GraphModel, opts HTMLOptions, w io.Writer) error {
 
 // workflowPlanTemplateData is the value passed to graph_workflowplan.html.
 type workflowPlanTemplateData struct {
-	Title        string
-	Plans        template.JS // JSON-encoded []transform.WorkflowPlan
-	NodeSpacing  float64     // column width in pixels
-	NodeInnerWidth float64   // NodeSpacing minus horizontal padding
+	Title          string
+	Plans          template.JS // JSON-encoded []transform.WorkflowPlan
+	NodeSpacing    float64     // column width in pixels
+	NodeInnerWidth float64     // NodeSpacing minus horizontal padding
 }
 
 // WorkflowPlanOptions configures the workflow-plan renderer.
@@ -180,8 +180,8 @@ func RenderWorkflowPlan(wm *transform.WorkflowModel, title string, opts Workflow
 	}
 
 	data := workflowPlanTemplateData{
-		Title:  title,
-		Plans:  template.JS(jsonBuf.String()), //nolint:gosec // JSON encoder escapes < > &
+		Title:       title,
+		Plans:       template.JS(jsonBuf.String()), //nolint:gosec // JSON encoder escapes < > &
 		NodeSpacing: opts.NodeSpacing,
 		// NodeInnerWidth leaves 10 px of breathing room on each side of the
 		// step node within the lane cell (cell has 8 px left/right padding,
