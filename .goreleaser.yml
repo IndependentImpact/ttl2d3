@@ -46,11 +46,20 @@ changelog:
   sort: asc
   filters:
     exclude:
-      - "^docs:"
-      - "^test:"
-      - "^chore:"
-      - Merge pull request
-      - Merge branch
+      - '^(docs|test|chore|ci|build|refactor|style)(\(.+\))?!?:'
+      - '^Bump '
+      - '^Initial plan$'
+      - '^Update$'
+      - '^Merge (pull request|branch)'
+  groups:
+    - title: Features
+      regexp: '^feat(\(.+\))?!?:'
+      order: 0
+    - title: Fixes
+      regexp: '^fix(\(.+\))?!?:'
+      order: 1
+    - title: Other
+      order: 999
 
 release:
   github:
