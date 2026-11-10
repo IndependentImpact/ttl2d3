@@ -28,7 +28,7 @@ linters:
           - gosec
         path: _test\.go
     paths:
-      - third_party$
+      - internal/thirdparty
       - builtin$
       - examples$
 formatters:
@@ -42,6 +42,6 @@ formatters:
   exclusions:
     generated: lax
     paths:
-      - third_party$
+      - internal/thirdparty
       - builtin$
       - examples$

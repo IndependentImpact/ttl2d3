@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	gon3 "github.com/deiu/gon3"
+	gon3 "github.com/IndependentImpact/ttl2d3/internal/thirdparty/gon3"
 )
 
 // ParseTurtle reads Turtle 1.1 input from r, using baseIRI as the document

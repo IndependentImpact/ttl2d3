@@ -112,7 +112,6 @@ func (m *Matcher) MatchLookAhead(l *Lexer, lookahead *Matcher) bool {
 		l.pos = pos
 		return false
 	}
-	panic("unreachable")
 }
 
 func (m *Matcher) MatchLookAheadRun(l *Lexer, lookahead *Matcher) bool {
