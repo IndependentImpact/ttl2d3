@@ -14,16 +14,16 @@ or an HTTP/HTTPS URL** – and produces either:
 
 * a **standalone D3 JSON object** ready to embed in any webpage, or
 * a **self-contained HTML page** with an interactive D3 visualisation
-  (zoom, pan, drag, tooltips, search) in one of three layout modes:
-  - **force** – D3 force-directed graph (default, backward-compatible)
-  - **layered** – deterministic left-to-right layered graph for workflows and state machines
-  - **swimlane** – process diagram with lanes grouped by ontology namespace prefix
+  (zoom, pan, drag, tooltips, search), either as a D3 force-directed graph
+  (default) or, with `--workflowplan`, as a process / swimlane diagram of an
+  `indimp:WorkflowPlan`.
 
 ---
 
 ## Status
 
-✅ **v0.1.0 release candidate** – all phases 1–11 complete.  
+✅ **v0.1.0 released** – see
+[Releases](https://github.com/IndependentImpact/ttl2d3/releases).  
 See [`plan.md`](plan.md) for the full implementation roadmap and
 [`spec.md`](spec.md) for the detailed specification.
 
@@ -31,12 +31,12 @@ See [`plan.md`](plan.md) for the full implementation roadmap and
 
 ## Installation
 
-```bash
-# Requires Go 1.22+
-go install github.com/IndependentImpact/ttl2d3/cmd/ttl2d3@latest
-```
+Download the archive for your platform (Linux, macOS, Windows; amd64 and
+arm64) from the
+[latest release](https://github.com/IndependentImpact/ttl2d3/releases/latest),
+verify it against `checksums.txt`, and put `ttl2d3` on your `PATH`.
 
-Or build from source:
+Or build from source (requires the Go version in `go.mod`):
 
 ```bash
 git clone https://github.com/IndependentImpact/ttl2d3.git
@@ -66,10 +66,9 @@ or move it onto your `PATH` (the file is already executable after `go build`).
 | `--out`                | `-O`  | stdout      | Output file path                                         |
 | `--format`             | `-f`  | auto-detect | Input format: `turtle`, `rdfxml`, `jsonld`               |
 | `--title`              |       | ontology IRI| Title shown in HTML output                               |
-| `--layout`             |       | `force`     | HTML layout mode: `force`, `layered`, `swimlane`         |
-| `--layout-direction`   |       | `lr`        | Flow direction for layered/swimlane: `lr` or `tb`        |
-| `--rank-separation`    |       | `180`       | Pixel gap between ranks (layered/swimlane)               |
-| `--node-separation`    |       | `80`        | Pixel gap between nodes within a rank (layered/swimlane) |
+| `--simplify`           |       | false       | Render `owl:unionOf` as direct edges instead of a union node |
+| `--workflowplan`       |       | false       | Render `indimp:WorkflowPlan` resources as a process / swimlane diagram (HTML only) |
+| `--node-spacing`       |       | `180`       | Column width in pixels for `--workflowplan`              |
 | `--link-distance`      |       | `80`        | D3 force link distance (force layout only)               |
 | `--charge-strength`    |       | `-300`      | D3 many-body charge strength (force layout only)         |
 | `--collide-radius`     |       | `20`        | D3 collision-detection radius (force layout only)        |
@@ -83,14 +82,8 @@ or move it onto your `PATH` (the file is already executable after `go build`).
 # Generate a self-contained HTML diagram (force layout, default)
 ./ttl2d3 convert --input my-ontology.ttl --out diagram.html
 
-# Layered layout for a workflow or state-machine ontology
-./ttl2d3 convert --input workflow.ttl --layout layered --out workflow.html
-
-# Swimlane layout grouping nodes by namespace prefix
-./ttl2d3 convert --input workflow.ttl --layout swimlane --out swimlane.html
-
-# Top-to-bottom layered layout
-./ttl2d3 convert --input workflow.ttl --layout layered --layout-direction tb --out workflow-tb.html
+# Workflow plan as a process / swimlane diagram
+./ttl2d3 convert --input reference/workflow-plan.ttl --workflowplan --out plan.html
 
 # Fetch an ontology directly from a URL
 ./ttl2d3 convert --input https://w3id.org/aiao --out aiao.html
@@ -135,8 +128,9 @@ Supported `Content-Type` values:
 - Domain/range IRIs imply class nodes even without explicit class declarations.
 - `owl:unionOf` domains/ranges are visualised as explicit union nodes linked to their member classes.
 - HTML output distinguishes local vs imported classes and lists namespaces derived from node IRIs.
-- `--layout layered` and `--layout swimlane` produce **deterministic, stable output** – no physics jitter. Back-edges (cycle-forming edges) are rendered as dashed orange arrows.
-- `--layout` applies only to HTML output; combining it with `--output json` is an error.
+- Parallel edges and inverse property pairs (A→B and B→A) are drawn as separate curved arcs.
+- In the HTML view, dragged nodes stay pinned; double-click a node or use **Unpin all** to release them.
+- `--workflowplan` applies only to HTML output; combining it with `--output json` is an error.
 
 ---
 
