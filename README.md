@@ -36,6 +36,12 @@ arm64) from the
 [latest release](https://github.com/IndependentImpact/ttl2d3/releases/latest),
 verify it against `checksums.txt`, and put `ttl2d3` on your `PATH`.
 
+With Go installed (v0.1.1 and later):
+
+```bash
+go install github.com/IndependentImpact/ttl2d3/cmd/ttl2d3@latest
+```
+
 Or build from source (requires the Go version in `go.mod`):
 
 ```bash

@@ -1,7 +1,7 @@
 package gon3
 
 import (
-	"github.com/rychipman/easylex"
+	"github.com/IndependentImpact/ttl2d3/internal/thirdparty/easylex"
 )
 
 const (

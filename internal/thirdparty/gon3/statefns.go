@@ -3,7 +3,7 @@ package gon3
 import (
 	"strings"
 
-	"github.com/rychipman/easylex"
+	"github.com/IndependentImpact/ttl2d3/internal/thirdparty/easylex"
 )
 
 const (
@@ -90,7 +90,6 @@ func lexDocument(l *easylex.Lexer) easylex.StateFn {
 	default:
 		return lexPName
 	}
-	panic("unreachable")
 }
 
 func isWhitespace(r rune) bool {

@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/rychipman/easylex"
+	"github.com/IndependentImpact/ttl2d3/internal/thirdparty/easylex"
 )
 
 type Parser struct {
@@ -521,7 +521,6 @@ func (p *Parser) parseLiteral() (*Literal, error) {
 	default:
 		return nil, fmt.Errorf("Expected a literal token, got %v", tok)
 	}
-	panic("unreachable")
 }
 
 func (p *Parser) parseNumericLiteral() (*Literal, error) {
