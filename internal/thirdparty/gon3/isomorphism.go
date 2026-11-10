@@ -1,3 +1,5 @@
+// Modified by Nova Institute NPC for ttl2d3; see internal/thirdparty/README.md.
+
 package gon3
 
 import (

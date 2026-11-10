@@ -3,3 +3,10 @@ Copyright 2026 Nova Institute NPC
 
 This product is licensed under the Apache License, Version 2.0.
 See the LICENSE file for details.
+
+This product includes a modified copy of gon3
+(https://github.com/deiu/gon3), originally written by Ryan Chipman and
+maintained by Andrei Sambra, licensed under the Apache License, Version 2.0.
+
+This product includes a copy of easylex
+(https://github.com/rychipman/easylex) by Ryan Chipman.
