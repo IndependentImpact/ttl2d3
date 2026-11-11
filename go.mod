@@ -2,7 +2,7 @@ module github.com/IndependentImpact/ttl2d3
 
 go 1.24
 
-toolchain go1.27.3
+toolchain go1.27.4
 
 require (
 	github.com/piprate/json-gold v0.8.0
