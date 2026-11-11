@@ -5,7 +5,7 @@ go 1.24
 toolchain go1.27.4
 
 require (
-	github.com/piprate/json-gold v0.8.0
+	github.com/piprate/json-gold v0.9.1
 	github.com/spf13/cobra v1.10.2
 )
 
