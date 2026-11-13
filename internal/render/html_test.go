@@ -197,6 +197,27 @@ func TestRenderHTML_LegendPresent(t *testing.T) {
 	}
 }
 
+func TestRenderHTML_LegendCollapsible(t *testing.T) {
+	// The legend can be minimised to its summary line, and starts minimised
+	// on small viewports where it would otherwise cover the graph.
+	gm := graph.NewGraphModel(nil, nil, graph.Metadata{})
+	var buf bytes.Buffer
+	if err := render.RenderHTML(&gm, render.HTMLOptions{}, &buf); err != nil {
+		t.Fatalf("RenderHTML: %v", err)
+	}
+	out := buf.String()
+
+	for _, want := range []string{
+		`<details id="legend-details" open>`,
+		`>Legend</summary>`,
+		`document.getElementById('legend-details').open = false`,
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("output missing %q", want)
+		}
+	}
+}
+
 func TestRenderHTML_TypeFilterCheckboxes(t *testing.T) {
 	// Each node type must have a corresponding type-filter checkbox in the legend,
 	// defaulting to checked (all types visible on initial load).

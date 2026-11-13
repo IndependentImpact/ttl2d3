@@ -187,7 +187,40 @@
       padding: 0.5rem 0.75rem;
       font-size: 0.8125rem;
       line-height: 1.5;
+      max-width: min(18rem, calc(100% - 2rem));
+      max-height: calc(100% - 2rem);
+      overflow: auto;
     }
+
+     
+    #legend summary {
+      font-size: 0.8125rem;
+      font-weight: 700;
+      color: #212529;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    #legend summary::-webkit-details-marker { display: none; }
+
+     
+    #legend summary::after {
+      content: "Show";
+      padding: 0 0.5rem;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      background: #ffffff;
+      color: #495057;
+      font-weight: 400;
+    }
+
+    #legend details[open] > summary::after { content: "\2212  Minimise"; }
+    #legend summary:hover::after { background: #e9ecef; }
+    #legend details[open] > summary { margin-bottom: 0.25rem; }
 
     #legend h2 {
       font-size: 0.8125rem;
@@ -293,7 +326,8 @@
     ></svg>
 
     <nav id="legend" aria-label="Graph legend">
-      <h2>Legend</h2>
+      <details id="legend-details" open>
+      <summary title="Show or hide the legend">Legend</summary>
       <label class="legend-item">
         <input type="checkbox" class="type-filter" data-type="class" checked aria-label="Show Class nodes" />
         <span class="legend-swatch circle" style="background:#1f77b4;" aria-hidden="true"></span>
@@ -334,6 +368,7 @@
       </div>
       <h2>Namespaces</h2>
       <div id="namespace-list" aria-label="Namespace prefixes"></div>
+      </details>
     </nav>
   </div>
 
@@ -812,6 +847,11 @@
         applyFilters();
       });
     });
+
+     
+    if (window.matchMedia('(max-width: 900px), (max-height: 600px)').matches) {
+      document.getElementById('legend-details').open = false;
+    }
 
      
     (function () {

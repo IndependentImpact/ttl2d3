@@ -119,7 +119,7 @@ node `group` (namespace prefix).  Both non-force layouts use D3 utilities
 | OH-04c| Support `swimlane` layout mode for process-style visualisation. |
 | OH-05 | Node colour and shape encode entity type (class=circle, property=diamond, instance=square). |
 | OH-06 | Hovering a node shows a tooltip with its IRI, label, and type. |
-| OH-07 | Include a visible legend. |
+| OH-07 | Include a visible legend that can be minimised to its title, and that starts minimised on small viewports. |
 | OH-08 | SVG is responsive (percentage-based width, viewport-relative height). |
 | OH-09 | Provide a search/filter input box to highlight nodes by label substring. |
 | OH-10 | Show origin (local vs imported) and namespace legend derived from node IRIs. |
